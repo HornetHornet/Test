@@ -1,0 +1,4 @@
+Обучение классификатора:
+- createBadExamples.bat вызывает CreateSamples, создающуу набор изображений и файл-дескриптор из данного видео;
+- run_createexamples.bat вызывает утилиту opencv_createsamples.exe, подготавливающую данные для обучения классификатора, создавая единственный .vec файл из ранее созданного набора фоновых изображений и изображения объекта, который планируется искать;
+- run_trainecascade.bat вызывает opencv_createsamples.exe произовадящую обучение (haar/LBP) классификатора (на данный момент opencv_createsamples завершается с ошибкой "Train dataset for temp stage can not be filled. Branch training terminated" ).

@@ -24,7 +24,7 @@ public:
 	CascadeWrapper(String name) : cascade_name(name)
 	{
 		if (!cascade.load(cascade_name))
-			printf(" %s --(!)Error loading face cascade\n", cascade_name);
+			printf(" %s --(!)Error cascade\n", cascade_name);
 		else
 			working = true;
 	};
