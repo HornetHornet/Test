@@ -2,11 +2,7 @@
 
 #include <opencv2/highgui.hpp>
 
-#include "CascadeWrapper.h"
-#include <boost/algorithm/string.hpp>    
-
-using namespace boost::filesystem;
-using namespace boost::algorithm;
+#include "Detectors.h"
 
 String window_name = "Detection";
 
@@ -65,26 +61,46 @@ int main(int argc, char ** argv) {
 		return -1;
 	}
 
-	std::vector<path> cascadeFiles;
 	std::vector<path> imageFiles;
+	std::vector<path> cascadeFiles;
+	std::vector<path> referenceImages;
 
 	{
 		const std::vector<string> cascadeExtentions({ ".xml" });
 		const std::vector<string> imageExtetions({ ".jpg", ".png", ".jpeg", ".pb", ".gif" });
 
-		cascadeFiles = getFiles(argv[1], cascadeExtentions, "cascades");
-		imageFiles = getFiles(argv[2], imageExtetions, "images");
+		imageFiles = getFiles(argv[1], imageExtetions, "images");
+		cascadeFiles = getFiles(argv[2], cascadeExtentions, "cascades");
+		referenceImages = getFiles(argv[3], imageExtetions, "images");
 	}
 
-	if (cascadeFiles.size() == 0 && imageFiles.size() == 0)
+	if ((cascadeFiles.size() == 0 /*|| referenceImages.size() == 0*/) && imageFiles.size() == 0)
 		return -1;
 
+	//vector<CascadeDetector> cascades(cascadeFiles.size());
+	//vector<SurfDetector> surfs(referenceImages.size());
 
-	vector<CascadeWrapper> cascades(cascadeFiles.size());
 
-	for (size_t i = 0; i < cascades.size(); i++) {
-		cascades[i].setAndLoad(cascadeFiles[i]);
+	//for (size_t i = 0; i < cascades.size(); i++) {
+	//	cascades[i].setAndLoad(cascadeFiles[i]);
+	//}
+
+	//for (size_t i = 0; i < cascades.size(); i++) {
+	//	surfs[i].setAndLoad(referenceImages[i]);
+	//}
+
+	vector<Detector*> detectors;
+
+	for each (path file in cascadeFiles) {
+		detectors.push_back(new CascadeDetector());
+		detectors.back()->setAndLoad(file);
 	}
+
+	for each (path image in referenceImages) {
+		detectors.push_back(new SurfDetector());
+		detectors.back()->setAndLoad(image);
+	}
+
 
 	for each (path imagePath in imageFiles) {
 
@@ -100,12 +116,24 @@ int main(int argc, char ** argv) {
 
 			imshow(window_name, image);
 
-			for each (CascadeWrapper cascade in cascades) {
-				cv::waitKey(100);
-				cascade.detectAndDisplay(image);
-				imshow(window_name, image);
-				cv::waitKey(10000);
+			for (size_t i = 0; i < detectors.size(); i++) {
+				if (detectors[i]->isWorking()) {
+						cv::waitKey(300);
+						detectors[i]->detectAndDisplay(image);
+						imshow(window_name, image);
+					}
 			}
+
+			//for each (CascadeDetector cascade in cascades) {
+			//	if (cascade.isWorking()) {
+			//		cv::waitKey(300);
+			//		cascade.detectAndDisplay(image);
+			//		imshow(window_name, image);
+			//	}
+			//}
+
+			cout << "PRESS ANY KEY or wait a few seconds" << endl;
+			cv::waitKey(7000);
 		}
 		else
 			cout << "ERROR: failed to open " << imagePath << endl;
@@ -113,7 +141,7 @@ int main(int argc, char ** argv) {
 
 	cout << "DONE" << endl;
 
-	waitKey(0);
+	cv::waitKey(0);
 
 	return 0;
 }
