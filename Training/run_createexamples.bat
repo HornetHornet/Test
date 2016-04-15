@@ -2,9 +2,7 @@
  -vec vector.vec^
  -img "C:\TheTest\DataSet_pic\reference\1.jpg"^
  -bg "C:\TheTest\BadExamples\bg.lst"^
- -num 300^
- -bgcolor 255^
- -bgthresh 15^
+ -num 500^
  -randinv^
  -maxxangle 1^
  -maxyangle 1^

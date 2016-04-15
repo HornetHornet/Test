@@ -1,94 +1,117 @@
-#include "opencv2/objdetect.hpp"
-#include "opencv2/videoio.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
+#include "stdafx.h"
 
-#include <iostream>
-#include <stdio.h>
+#include <opencv2/highgui.hpp>
 
-using namespace std;
-using namespace cv;
+#include "CascadeWrapper.h"
+#include <boost/algorithm/string.hpp>    
 
-/** Function Headers */
-void detectAndDisplay(Mat frame);
+using namespace boost::filesystem;
+using namespace boost::algorithm;
 
-/** Global variables */
+String window_name = "Detection";
 
-String window_name = "Capture - Face detection";
+template <class T> ostream &operator << (ostream &stream, const std::vector <T> &vect) {
+	for each (T var in vect)
+		cout << var << endl;
+	cout << endl;
+	return stream;
+}
 
-class CascadeWrapper {
-	String cascade_name;
-	CascadeClassifier cascade;
-	bool working = false;
-public:
-	CascadeWrapper(String name) : cascade_name(name)
-	{
-		if (!cascade.load(cascade_name))
-			printf(" %s --(!)Error cascade\n", cascade_name);
-		else
-			working = true;
-	};
-	void detectAndDisplay(const Mat &frame) {
-		cout << "detcting " << cascade_name << endl;
+std::vector<path> getFiles(const string &strDir, const vector<string> &extentions, string target_name = "objects") {
 
-		std::vector<Rect> faces;
-		Mat frame_gray;
+	std::vector<path> listOfFiles;
 
-		cvtColor(frame, frame_gray, COLOR_BGR2GRAY);
-		equalizeHist(frame_gray, frame_gray);
+	path phDir{ strDir };
 
-		cout << "--Detect " << cascade_name << endl;
-		cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CASCADE_SCALE_IMAGE, Size(30, 30));
+	if (!is_directory(phDir)) {
+		cout << "ERROR: " << phDir.string() << " is not a valid path" << endl;
+		return listOfFiles;
+	}
 
-		for (size_t i = 0; i < faces.size(); i++)
-		{
-			cout << "got " << cascade_name << endl;
-			Point center(faces[i].x + faces[i].width / 2, faces[i].y + faces[i].height / 2);
-			ellipse(frame, center, Size(faces[i].width / 2, faces[i].height / 2), 0, 0, 360, Scalar(255, 0, 255), 4, 8, 0);
+	for (auto& entry : boost::make_iterator_range(directory_iterator(phDir), {})) {
 
-			Mat faceROI = frame_gray(faces[i]);
-			std::vector<Rect> eyes;
+		string fileExtention = entry.path().extension().string();
+		to_lower(fileExtention);
 
+		for each (string target in extentions) {
+			if (fileExtention == target) {
+				listOfFiles.push_back(entry.path());
+				break;
+			}
 		}
+	}
 
-		imshow(window_name, frame);
+	cout << listOfFiles.size() << " " << target_name << " in " << strDir << " found" << endl;
+
+	return listOfFiles;
+}
+
+void prepareImage(Mat &image) {
+	int maxArea = 1024 * 512;
+	int area = image.size().area();
+
+	if (area > maxArea) {
+		float factor = 2;
+		while (area / (factor * factor) > maxArea)
+			factor *= 2;
+		resize(image, image, Size(), 1/ factor, 1/factor, cv::INTER_CUBIC);
 	}
 };
 
-/** @function main */
 int main(int argc, char ** argv) {
 
-	Mat src;
-
-	if (argc > 1)
-		src = imread(argv[1], 1);
-	else {
-		cout << "ERROR: no image provided" << endl;
+	if (argc < 3) {
+		cout << "ERROR: not enough arguments" << endl;
 		return -1;
 	}
 
-	if (src.empty()) {
-		cout << "ERROR: could not open " << argv[1] << endl;
-		return -1;
+	std::vector<path> cascadeFiles;
+	std::vector<path> imageFiles;
+
+	{
+		const std::vector<string> cascadeExtentions({ ".xml" });
+		const std::vector<string> imageExtetions({ ".jpg", ".png", ".jpeg", ".pb", ".gif" });
+
+		cascadeFiles = getFiles(argv[1], cascadeExtentions, "cascades");
+		imageFiles = getFiles(argv[2], imageExtetions, "images");
 	}
 
-	//CascadeWrapper frontalface_cascade("C:\\TheTest\\Cascades\\lbpcascade_frontalface.xml");
-	//CascadeWrapper profileface_cascade("C:\\TheTest\\Cascades\\lbpcascade_profileface.xml");
-	//CascadeWrapper silverware_cascade("C:\\TheTest\\Cascades\\lbpcascade_silverware.xml");
+	if (cascadeFiles.size() == 0 && imageFiles.size() == 0)
+		return -1;
 
-	//frontalface_cascade.detectAndDisplay(src);
-	//profileface_cascade.detectAndDisplay(src);
-	//silverware_cascade.detectAndDisplay(src);
-	
-	CascadeWrapper face_cascade("C:\\TheTest\\Cascades\\haarcascade_frontalface_alt.xml");
-	CascadeWrapper fullbody_cascade("C:\\TheTest\\Cascades\\haarcascade_fullbody.xml");
-	CascadeWrapper lowerbody_cascade("C:\\TheTest\\Cascades\\haarcascade_lowerbody.xml");
-	CascadeWrapper upperdoy_cascade("C:\\TheTest\\Cascades\\haarcascade_upperbody.xml");
 
-	face_cascade.detectAndDisplay(src);
-	fullbody_cascade.detectAndDisplay(src);
-	lowerbody_cascade.detectAndDisplay(src);
-	upperdoy_cascade.detectAndDisplay(src);
+	vector<CascadeWrapper> cascades(cascadeFiles.size());
+
+	for (size_t i = 0; i < cascades.size(); i++) {
+		cascades[i].setAndLoad(cascadeFiles[i]);
+	}
+
+	for each (path imagePath in imageFiles) {
+
+		cout << imagePath.filename() << endl;
+
+		Mat image = imread(imagePath.string(), 1);
+
+		if (!image.empty()) {
+
+			imshow(window_name, image);
+
+			prepareImage(image);
+
+			imshow(window_name, image);
+
+			for each (CascadeWrapper cascade in cascades) {
+				cv::waitKey(100);
+				cascade.detectAndDisplay(image);
+				imshow(window_name, image);
+				cv::waitKey(10000);
+			}
+		}
+		else
+			cout << "ERROR: failed to open " << imagePath << endl;
+	}
+
+	cout << "DONE" << endl;
 
 	waitKey(0);
 
