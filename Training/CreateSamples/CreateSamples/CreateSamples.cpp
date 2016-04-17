@@ -1,6 +1,6 @@
 /*
-	Application creates sample images from a given video and a decription file 
-	for the cascade classificator training
+Application creates sample images from a given video and a decription file
+for the cascade classificator training
 */
 
 #include "opencv2/highgui/highgui.hpp"
@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 	}
 
 	// apply given parametrs
-	string videoPath = argv[1];	
+	string videoPath = argv[1];
 	string destinationPath = argv[2];
 	unsigned int NumberOfExamplesRequired = static_cast<unsigned int> (stoi(argv[3]));
 	unsigned int period = static_cast<unsigned int> (max(1, stoi(argv[4])));
@@ -72,7 +72,6 @@ int main(int argc, char **argv) {
 		if (frame.empty())
 			break;
 
-		//resize(frame, frame, Size(requiredHeight * requiredWidth), requiredHeight/frame.rows, requiredWidth / frame.cols, cv::INTER_LANCZOS4);
 		resize(frame, frame, Size(requiredWidth, requiredHeight), 0, 0, cv::INTER_LANCZOS4);
 
 		string imageName(vidName + "_" + to_string(t) + "_" + to_string(i) + ".jpg");

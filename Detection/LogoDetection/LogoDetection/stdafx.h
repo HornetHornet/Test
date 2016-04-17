@@ -5,12 +5,13 @@
 
 #include <iostream>
 #include <stdio.h>
-#include "opencv2/imgproc.hpp"
-#include <opencv2/objdetect.hpp>
+
 #include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+#include "opencv2/objdetect.hpp"
 
 #include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>    
+#include <boost/algorithm/string.hpp> 
 
 using namespace std;
 using namespace cv;
