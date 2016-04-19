@@ -1,0 +1,127 @@
+
+C:\TheTest\Training>"C:\opencv\build\x64\vc14\bin\opencv_traincascade.exe" -data
+ "C:\TheTest\Training\cascades\1" -vec "C:\TheTest\Training\vectors\1.vec" -bg "
+C:\TheTest\Training\BadExamples\tc_bg.txt" -numPos 400 -numNeg 900 -numStages 16
+ -precalcValBufSize 1024 -precalcIdxBufSize 1024 -w 65 -h 65 -minHitRate 0.999 -
+maxFalseAlarmRate 0.5 -weightTrimRate 0.95 -maxDepth 1 -mode ALL -featureType LB
+P -maxWeakCount 100
+PARAMETERS:
+cascadeDirName: C:\TheTest\Training\cascades\1
+vecFileName: C:\TheTest\Training\vectors\1.vec
+bgFileName: C:\TheTest\Training\BadExamples\tc_bg.txt
+numPos: 400
+numNeg: 900
+numStages: 16
+precalcValBufSize[Mb] : 1024
+precalcIdxBufSize[Mb] : 1024
+acceptanceRatioBreakValue : -1
+stageType: BOOST
+featureType: LBP
+sampleWidth: 65
+sampleHeight: 65
+boostType: GAB
+minHitRate: 0.999
+maxFalseAlarmRate: 0.5
+weightTrimRate: 0.95
+maxDepth: 1
+maxWeakCount: 100
+
+===== TRAINING 0-stage =====
+<BEGIN
+POS count : consumed   400 : 400
+NEG count : acceptanceRatio    900 : 1
+Precalculation time: 21.014
++----+---------+---------+
+|  N |    HR   |    FA   |
++----+---------+---------+
+|   1|        1|        1|
++----+---------+---------+
+|   2|        1|0.0233333|
++----+---------+---------+
+END>
+Training until now has taken 0 days 0 hours 3 minutes 12 seconds.
+
+===== TRAINING 1-stage =====
+<BEGIN
+POS count : consumed   400 : 400
+NEG count : acceptanceRatio    900 : 0.608931
+Precalculation time: 19.741
++----+---------+---------+
+|  N |    HR   |    FA   |
++----+---------+---------+
+|   1|        1|        1|
++----+---------+---------+
+|   2|        1|        1|
++----+---------+---------+
+|   3|        1|     0.08|
++----+---------+---------+
+END>
+Training until now has taken 0 days 0 hours 8 minutes 3 seconds.
+
+===== TRAINING 2-stage =====
+<BEGIN
+POS count : consumed   400 : 400
+NEG count : acceptanceRatio    900 : 0.242457
+Precalculation time: 24.25
++----+---------+---------+
+|  N |    HR   |    FA   |
++----+---------+---------+
+|   1|        1|        1|
++----+---------+---------+
+|   2|        1|     0.07|
++----+---------+---------+
+END>
+Training until now has taken 0 days 0 hours 11 minutes 28 seconds.
+
+===== TRAINING 3-stage =====
+<BEGIN
+POS count : consumed   400 : 400
+NEG count : acceptanceRatio    900 : 0.0664795
+Precalculation time: 26.356
++----+---------+---------+
+|  N |    HR   |    FA   |
++----+---------+---------+
+|   1|        1|        1|
++----+---------+---------+
+|   2|        1|0.0844444|
++----+---------+---------+
+END>
+Training until now has taken 0 days 0 hours 15 minutes 25 seconds.
+
+===== TRAINING 4-stage =====
+<BEGIN
+POS count : consumed   400 : 400
+NEG count : acceptanceRatio    900 : 0.00937891
+Precalculation time: 21.106
++----+---------+---------+
+|  N |    HR   |    FA   |
++----+---------+---------+
+|   1|        1|        1|
++----+---------+---------+
+|   2|        1| 0.122222|
++----+---------+---------+
+END>
+Training until now has taken 0 days 0 hours 25 minutes 34 seconds.
+
+===== TRAINING 5-stage =====
+<BEGIN
+POS count : consumed   400 : 400
+NEG count : acceptanceRatio    900 : 0.00109626
+Precalculation time: 22.041
++----+---------+---------+
+|  N |    HR   |    FA   |
++----+---------+---------+
+|   1|        1|        1|
++----+---------+---------+
+|   2|        1|        0|
++----+---------+---------+
+END>
+Training until now has taken 0 days 0 hours 47 minutes 8 seconds.
+
+===== TRAINING 6-stage =====
+<BEGIN
+POS count : consumed   400 : 400
+Train dataset for temp stage can not be filled. Branch training terminated.
+
+C:\TheTest\Training>pause
+Для продолжения нажмите любую клавишу . . .

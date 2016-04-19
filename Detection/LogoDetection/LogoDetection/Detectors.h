@@ -38,6 +38,7 @@ class SurfDetector : public Detector {
 	Mat referenceImage;
 
 	static const int minHessian = 400;
+	// Ptr<SURF> surf = SURF::create(minHessian);
 	//static const SurfFeatureDetector detector(minHessian);
 
 public:

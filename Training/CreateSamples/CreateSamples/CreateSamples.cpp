@@ -13,72 +13,96 @@ for the cascade classificator training
 #include <windows.h>
 #include "opencv2/imgproc.hpp"
 
+#include "GetFiles.h"
+
 using namespace std;
 using namespace cv;
 
 int main(int argc, char **argv) {
 
-	if (argc < 7) {
+	if (argc < 8) {
 		cout << "ERROR: not enought argumets" << endl;
 		return -1;
 	}
 
 	// apply given parametrs
-	string videoPath = argv[1];
-	string destinationPath = argv[2];
-	unsigned int NumberOfExamplesRequired = static_cast<unsigned int> (stoi(argv[3]));
-	unsigned int period = static_cast<unsigned int> (max(1, stoi(argv[4])));
-	unsigned int requiredWidth = static_cast<unsigned int> (stoi(argv[5]));
-	unsigned int requiredHeight = static_cast<unsigned int> (stoi(argv[6]));
+	path videoPath{ argv[1] };
+	path destinationPath{ argv[2] };
+	path absPath{ argv[3] };
 
-	// set names, directiories, etc
-	string vidName = videoPath.substr(videoPath.find('/') + 1, videoPath.find('.') - videoPath.find('/') - 1);
+	unsigned int NumberOfExamplesRequired = static_cast<unsigned int> (stoi(argv[4]));
+	unsigned int period = static_cast<unsigned int> (max(1, stoi(argv[5])));
+	unsigned int requiredWidth = static_cast<unsigned int> (stoi(argv[6]));
+	unsigned int requiredHeight = static_cast<unsigned int> (stoi(argv[7]));
+
+	// set names, directories, etc
 	string imageDir = "img";
-	string descriptionFile = "bg.txt";
-	ofstream fout;
-	time_t t = time(0); // get system time to make image names unique for every session
+	
+	string cs_decsription = "cs_bg.txt";
+	string tc_decsription = "tc_bg.txt";
 
-	fout.open(destinationPath + "//" + descriptionFile, ostream::app);
+	std::ofstream cs_fout;
+	std::ofstream tc_fout;
 
-	if (!fout.is_open()) {  // create folders if needed
+	cs_fout.open(destinationPath.string() + "//" + cs_decsription, ostream::app);
+	tc_fout.open(destinationPath.string() + "//" + tc_decsription, ostream::app);
+
+	if (!cs_fout.is_open() || !tc_fout.is_open()) {  // create folders if needed
 		cout << "failed to open a folder, creating..." << endl;
 
-		_mkdir(destinationPath.c_str());
-		_mkdir((destinationPath + "//" + imageDir).c_str());
+		_mkdir(destinationPath.string().c_str());
+		_mkdir((destinationPath.string() + "//" + imageDir).c_str());
 
-		fout.open(destinationPath + "//" + descriptionFile, ostream::app);
+		cs_fout.open(destinationPath.string() + "//" + cs_decsription, ostream::app);
+		tc_fout.open(destinationPath.string() + "//" + tc_decsription, ostream::app);
 
-		if (!fout.is_open()) {
+		if (!cs_fout.is_open() || !tc_fout.is_open()) {
 			cout << "ERROR: failed to open and create a folder" << destinationPath << endl;
 			return -1;
 		}
 	}
 
-	VideoCapture cap(videoPath);
+	vector<path> videos = getFiles(videoPath, VIDEOS);
 
-	if (!cap.isOpened()) {
-		cout << "ERROR: failed to open a video" << endl;
-		return -1;
-	}
+	for each (path video in videos) {
 
-	Mat frame;
+		cout << video << endl;
 
-	for (int i = 0; i < NumberOfExamplesRequired; i++) {
+		VideoCapture cap(video.string());
+		Mat frame;
 
-		for (int j = 0; j < period && cap.grab(); j++);  // skip frames	
+		time_t theTime = time(NULL); // get system time to make image names unique for every session
 
-		cap >> frame;
+		if (!cap.isOpened()) {
+			cout << "ERROR: failed to open " << video << endl;
+			continue;
+		} 
+		else
+			cout << "opened " << video << endl;
+		
+		for (int i = 0; i < NumberOfExamplesRequired; i++) {
+			for (int j = 0; j < period && cap.grab(); j++);  // skip frames	
 
-		if (frame.empty())
-			break;
+			cap >> frame;
 
-		resize(frame, frame, Size(requiredWidth, requiredHeight), 0, 0, cv::INTER_LANCZOS4);
+			if (frame.empty()) break;
 
-		string imageName(vidName + "_" + to_string(t) + "_" + to_string(i) + ".jpg");
-		fout << imageDir + "//" + imageName << '\n';  // create a record in the description file
-		imwrite(destinationPath + "//" + imageDir + "//" + imageName, frame, { 50 });
+			//resize(frame, frame, Size(requiredWidth, requiredHeight), 0, 0, cv::INTER_LANCZOS4);
 
-		cout << "writing " << destinationPath + "/" + imageDir + "/" + imageName << endl;
+			string imageName(videoPath.stem().string() + "_" + to_string(theTime) + "_" + to_string(i) + ".jpg");
+			string bgTxtRecord = imageDir + "\\" + imageName;
+
+			// save image
+			imwrite(destinationPath.string() + "\\" + bgTxtRecord, frame, { 50 });
+
+			// create a record in the description file for opencv_createsamples
+			cs_fout << bgTxtRecord << endl; 
+
+			// create a record in the description file for opencv_traincascade
+			tc_fout << absPath.string() + "\\" + bgTxtRecord << endl; 
+
+			cout << "writing " << bgTxtRecord << endl;
+		}
 	}
 
 	cout << "DONE" << endl;

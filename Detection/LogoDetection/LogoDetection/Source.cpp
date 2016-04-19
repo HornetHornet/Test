@@ -5,14 +5,7 @@
 #include "Detectors.h"
 #include "GetFiles.h"
 
-String window_name = "Detection";
-
-//template <class T> ostream &operator << (ostream &stream, const std::vector <T> &vect) {
-//	for each (T var in vect)
-//		cout << var << endl;
-//	cout << endl;
-//	return stream;
-//}
+String window_name = "LogoDetection";
 
 void prepareImage(Mat &image) {
 	int maxArea = 1024 * 512;

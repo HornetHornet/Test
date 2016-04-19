@@ -2,7 +2,9 @@
 
 /*members of Detector */
 
-Detector::Detector() { };
+Detector::Detector() {
+	working = false;
+};
 
 bool Detector::isWorking() const {
 	return working;
@@ -34,7 +36,12 @@ void CascadeDetector::detectAndDisplay(Mat &frame) {
 
 	cout << "	detecting " << targetName << endl;
 
-	classifier.detectMultiScale(imGray, targets, 1.1, 2, 0 | CASCADE_SCALE_IMAGE, Size(30, 30));
+	{
+		double time = getTickCount();
+		classifier.detectMultiScale(imGray, targets, 1.1, 2, 0 | CASCADE_SCALE_IMAGE, Size(30, 30));
+		time = (getTickCount() - time) / getTickFrequency();
+		cout << "	detectMultiScale took " << time << " seconds" << endl;
+	}
 
 	for (size_t i = 0; i < targets.size(); i++) {
 		cout << "		got " << targetName << endl;
@@ -42,7 +49,10 @@ void CascadeDetector::detectAndDisplay(Mat &frame) {
 		Rect rect(targets[i].x, targets[i].y, targets[i].width, targets[i].height);
 		rectangle(frame, rect, Scalar(255, 0, 255), 2, 8, 0);
 
-		putText(frame, to_upper_copy<std::string>(targetName), Point(targets[i].x, targets[i].y), FONT_HERSHEY_DUPLEX, 0.5, Scalar(255, 255, 0), 1, 1, 0);
+		putText(frame, 
+			to_upper_copy<std::string>(targetName), 
+			Point(targets[i].x, targets[i].y), 
+			FONT_HERSHEY_DUPLEX, 0.5, Scalar(255, 255, 0), 1, 1, 0);
 	}
 }
 
@@ -52,9 +62,9 @@ void CascadeDetector::detectAndDisplay(Mat &frame) {
 
 	void SurfDetector::setAndLoad(const path &pathToResource) {
 
-		referenceImage = imread(pathToResource.string(), 1);
+		//referenceImage = imread(pathToResource.string(), 1);
 
-		//working = !referenceImage.empty());
+		//working = !referenceImage.empty();
 		
 	};
 

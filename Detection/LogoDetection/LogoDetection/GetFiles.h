@@ -3,33 +3,46 @@
 #ifndef GETFILES_H
 #define GETFILES_H
 
-#include "stdafx.h"
+#include <iostream>
+#include <stdio.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp> 
 
 using namespace std;
 using namespace boost::filesystem;
+using namespace boost::algorithm;
 
 enum fileTypes {IMAGES, VIDEOS, CASCADES};
 
-std::vector<path> getFiles(const path &dir, fileTypes types) {
+bool checkExtention(const path &filePath, const std::vector<string> &extentions) {
+	string fileExtention = filePath.extension().string();
+	to_lower(fileExtention);
 
-	string target_name;
+	for each (string extention in extentions)
+		if (fileExtention == extention)
+			return true;
+
+	return false;
+}
+
+std::vector<path> getFiles(const path &thePath, fileTypes types) {
+
+	string object_name;
 	std::vector<string> extentions;
-	std::vector<string> imageExtetions;  
 
 	switch (types)
 	{
 	case IMAGES:
-		target_name = "images";
+		object_name = "images";
 		extentions = { ".jpg", ".png", ".jpeg", ".pb", ".gif" };
 		break;
 	case VIDEOS:
-		target_name = "videos";
+		object_name = "videos";
 		extentions = { ".avi" };
 		break;
 	case CASCADES:
-		target_name = "cascades";
+		object_name = "cascades";
 		extentions = { ".xml" };
 		break;
 	default:
@@ -38,26 +51,24 @@ std::vector<path> getFiles(const path &dir, fileTypes types) {
 
 	std::vector<path> listOfFiles;
 
-
-	if (!is_directory(dir)) {
-		cout << "ERROR: " << dir.string() << " is not a valid path" << endl;
-		return listOfFiles;
-	}
-
-	for (auto& entry : boost::make_iterator_range(directory_iterator(dir), {})) {
-
-		string fileExtention = entry.path().extension().string();
-		to_lower(fileExtention);
-
-		for each (string target in extentions) {
-			if (fileExtention == target) {
-				listOfFiles.push_back(entry.path());
-				break;
+	if (exists(thePath)) {
+		if (is_directory(thePath)) {
+			for (auto& entry : boost::make_iterator_range(directory_iterator(thePath))) {
+				path entryPath = entry.path();
+				if (checkExtention(entryPath, extentions)) 
+					listOfFiles.push_back(entryPath);
 			}
 		}
+		else {
+			if (checkExtention(thePath, extentions))
+				listOfFiles.push_back(thePath);
+		}
+	}
+	else {
+		cout << "ERROR: " << thePath.string() << " is invalid path" << endl;
 	}
 
-	cout << listOfFiles.size() << " " << target_name << " in " << dir << " found" << endl;
+	cout << listOfFiles.size() << " " << object_name << " in " << thePath << " found" << endl << endl;
 
 	return listOfFiles;
 }
