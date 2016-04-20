@@ -32,5 +32,8 @@
     <ClInclude Include="GetFiles.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GeneralTransforms.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

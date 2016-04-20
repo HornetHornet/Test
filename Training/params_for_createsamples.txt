@@ -1,9 +1,9 @@
  -bg "C:\Test\Training\BadExamples\cs_bg.txt"^
- -num 600^
- -maxxangle 0.2^
- -maxyangle 0.2^
- -maxzangle  0.2^
+ -num 400^
+ -maxxangle 0.5^
+ -maxyangle 0.5^
+ -maxzangle  0.5^
  -bgcolor 255^
  -bgthresh 20^
- -w 65^
- -h 65
+ -w 50^
+ -h 50

@@ -1,9 +1,9 @@
 "CreateSamples/x64/Debug/CreateSamples.exe"^
- "BadExampleVideos"^
+ "BadExampleVideos\revenant.avi"^
  "BadExamples"^
  "C:\Test\Training\BadExamples"^
  30000^
- 30^
+ 60^
  65^
  65
 

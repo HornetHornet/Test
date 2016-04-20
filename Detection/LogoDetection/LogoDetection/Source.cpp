@@ -1,23 +1,25 @@
 #include "stdafx.h"
 
-#include <opencv2/highgui.hpp>
-
 #include "Detectors.h"
 #include "GetFiles.h"
+#include "GeneralTransforms.h"
 
 String window_name = "LogoDetection";
 
-void prepareImage(Mat &image) {
-	int maxArea = 1024 * 512;
-	int area = image.size().area();
+bool openImage(const path &imagePath, Mat &image) {
 
-	if (area > maxArea) {
-		float factor = 2;
-		while (area / (factor * factor) > maxArea)
-			factor *= 2;
-		resize(image, image, Size(), 1/ factor, 1/factor, cv::INTER_CUBIC);
+	cout << endl << " opening " << imagePath << endl;
+	image = imread(imagePath.string());
+
+	if (!image.empty()) {
+		cout << " opened " << imagePath.filename().string() << endl;
+		return true;
 	}
-};
+	else {
+		cout << "ERROR: failed to open " << imagePath << endl;
+		return false;
+	}
+}
 
 int main(int argc, char ** argv) {
 
@@ -26,64 +28,53 @@ int main(int argc, char ** argv) {
 		return -1;
 	}
 
-	std::vector<path> imageFiles;
-	std::vector<path> cascadeFiles;
-	std::vector<path> referenceImages;
+	std::vector<path> scenePaths;
+	std::vector<path> objectPaths;
 
-	imageFiles = getFiles(argv[1], IMAGES);
-	cascadeFiles = getFiles(argv[2], CASCADES);
-	referenceImages = getFiles(argv[3], IMAGES);
+	scenePaths = getFiles(argv[1], IMAGES);
+	objectPaths = getFiles(argv[3], IMAGES);
 
-	if (imageFiles.size() == 0) {
-		cout << "ERROR: nowhere to detect" << endl;
+	if (scenePaths.size() == 0) {
+		cout << "ERROR: no scenes" << endl;
 		return -2;
 	}
 
-	if (cascadeFiles.size() == 0 && referenceImages.size() == 0)  {
-		cout << "ERROR: nothing to detect" << endl;
+	if (objectPaths.size() == 0)  {
+		cout << "ERROR: no objects" << endl;
 		return -3;
 	}
-	
-	vector<Detector*> detectors;
 
-	for each (path file in cascadeFiles) {
-		detectors.push_back(new CascadeDetector());
-		detectors.back()->setAndLoad(file);
+	vector<SurfDetector> objects;
+
+	for each (path objectPath in objectPaths) {
+		Mat objectImage;
+
+		if (openImage(objectPath, objectImage)) {
+			SurfDetector detector("Object " + objectPath.stem().string());
+			detector.process(objectImage);
+			objects.push_back(detector);
+		}
 	}
 
-	for each (path image in referenceImages) {
-		detectors.push_back(new SurfDetector());
-		detectors.back()->setAndLoad(image);
-	}
+	for each (path scenePath in scenePaths) {
 
+		Mat imgScene;
 
-	for each (path imagePath in imageFiles) {
+		SurfDetector sceneSURF("Scene " + scenePath.stem().string());
 
-		cout << imagePath.filename() << endl;
+		if (openImage(scenePath, imgScene)) {
 
-		Mat image = imread(imagePath.string(), 1);
+			cout << " processing " << scenePath.filename() << endl;
 
-		if (!image.empty()) {
-
-			imshow(window_name, image);
-
-			prepareImage(image);
-
-			imshow(window_name, image);
-
-			for each (Detector* detector in detectors) {
-				if (detector->isWorking()) {
-					cv::waitKey(300);
-					detector->detectAndDisplay(image);
-					imshow(window_name, image);
+			sceneSURF.process(imgScene, true);
+			if (sceneSURF.isWorking()) {
+				for each (SurfDetector object in objects) {
+					if (object.isWorking()) {
+						object.match(sceneSURF);
+					}
 				}
 			}
-
-			cout << "PRESS ANY KEY or wait a few seconds" << endl;
-			cv::waitKey(7000);
-		}
-		else
-			cout << "ERROR: failed to open " << imagePath << endl;
+		}	
 	}
 
 	cout << "DONE" << endl;
