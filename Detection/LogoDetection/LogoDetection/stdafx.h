@@ -5,6 +5,10 @@
 
 #include <iostream>
 #include <stdio.h>
+#include <fstream>
+#include <chrono>
+#include <ctime>
+#include <sstream>
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -12,6 +16,9 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp> 
+
+#include <boost/iostreams/stream.hpp>
+#include <boost/iostreams/tee.hpp>
 
 using namespace std;
 using namespace cv;
