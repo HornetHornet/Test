@@ -14,25 +14,27 @@ protected:
 	String name;
 	bool working = false;
 	Detector();
+	static ofstream clocklog;
 public:
 	String getName() const;
 	bool isWorking() const;
 };
 
-class SurfDetector : public Detector {
+class SiftDetector : public Detector {
+
+	static FlannBasedMatcher matcher;
+	static SiftFeatureDetector detector;
+	static SiftDescriptorExtractor extractor;
 
 	Mat image;
-
-	SurfFeatureDetector detector = SurfFeatureDetector(400);
-	SurfDescriptorExtractor extractor;
-
 	std::vector<KeyPoint> keypoints;
 	Mat descriptors;
 
 public:
-	SurfDetector(String n);
+	SiftDetector(String n);
 	void process(Mat image, bool isScene = false);
-	bool match(SurfDetector surf_scene, Mat &img_scene);
+	bool match(SiftDetector sd_scene, Mat &img_scene);
 };
+
 
 #endif

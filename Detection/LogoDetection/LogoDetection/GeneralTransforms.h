@@ -24,6 +24,7 @@ static void filterIt(Mat &image) {
 	// 	image = imCopy.clone(); medianBlur(image, image, 3);
 }
 
+//
 static void reduce(Mat& image, int div) {
 
 	static int divideWith;

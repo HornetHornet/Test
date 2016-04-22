@@ -79,7 +79,7 @@ int main(int argc, char ** argv) {
 
 	create_directory(path("results_" + sessionTime));
 
-	std::vector<SurfDetector> objects;
+	std::vector<SiftDetector> objects;
 	double t = (double)getTickCount();
 	
 	for each (path objectPath in path_objects) {
@@ -87,7 +87,7 @@ int main(int argc, char ** argv) {
 		cout << " object " << objectPath.stem() << endl;
 
 		if (openImage(objectPath, objectImage)) {
-			SurfDetector detector("obj_" + objectPath.filename().string());
+			SiftDetector detector("obj_" + objectPath.filename().string());
 			detector.process(objectImage);
 
 			if (detector.isWorking())
@@ -108,25 +108,25 @@ int main(int argc, char ** argv) {
 		cout << endl << "scene " << path_scene.stem() << endl;
 
 		Mat img_scene;
-		SurfDetector surf_scene("scn_" + path_scene.filename().string());
+		SiftDetector sd_scene("scn_" + path_scene.filename().string());
 
 		if (openImage(path_scene, img_scene)) {
 
 			shrinkTo(img_scene, 780);
-			surf_scene.process(img_scene.clone(), true);
+			sd_scene.process(img_scene.clone(), true);
 
-			if (surf_scene.isWorking()) {
+			if (sd_scene.isWorking()) {
 				int obj_processed = 0;
-				for each (SurfDetector object in objects) {
-					if (object.match(surf_scene, img_scene)) {
-						tout << " got " << object.getName() << " on " << surf_scene.getName() << endl;
+				for each (SiftDetector object in objects) {
+					if (object.match(sd_scene, img_scene)) {
+						tout << " got " << object.getName() << " on " << sd_scene.getName() << endl;
 						detections++;
-						break;
+						//break;
 					}
 					cout << endl << "object " << ++obj_processed << "/ " << objects.size() << endl;
-					cv::waitKey(50);
+					//cv::waitKey(50);
 				}
-				imshow("Logo Detection", img_scene);
+				//imshow("Logo Detection", img_scene);
 				imwrite("results_" + sessionTime + "/res_for_" + path_scene.stem().string() + ".jpg", img_scene);
 			}
 		}
