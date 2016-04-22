@@ -19,6 +19,7 @@ public:
 	bool isWorking() const;
 };
 
+class SurfDetector : public Detector {
 
 	Mat image;
 

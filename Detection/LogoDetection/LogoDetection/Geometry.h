@@ -1,7 +1,5 @@
 #pragma once
 
-#pragma once
-
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
@@ -13,7 +11,7 @@ using namespace cv;
 namespace geom
 {
 	// get dot product of two Point_
-#define dotProduct(a, b) (a.x * b.x + a.y * b.y) 
+	#define dotProduct(a, b) (a.x * b.x + a.y * b.y) 
 
 	// angle between ab and bc
 	inline int getAngle(Point2f a, Point2f b, Point2f c)
