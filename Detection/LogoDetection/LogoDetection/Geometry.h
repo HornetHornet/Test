@@ -10,8 +10,6 @@ using namespace cv;
 
 namespace geom
 {
-	// get dot product of two Point_
-	#define dotProduct(a, b) (a.x * b.x + a.y * b.y) 
 
 	// angle between ab and bc
 	inline int getAngle(Point2f a, Point2f b, Point2f c)
@@ -19,7 +17,7 @@ namespace geom
 		Point2f ab = b - a;
 		Point2f cb = b - c;
 
-		float dotProd = dotProduct(ab, cb);
+		float dotProd = ab.x * cb.x + ab.y * cb.y;
 		float abLenSqr = ab.x * ab.x + ab.y * ab.y;
 		float cbLenSqr = cb.x * cb.x + cb.y * cb.y;
 		float cosSqr = dotProd * dotProd / (abLenSqr * cbLenSqr);
@@ -34,17 +32,17 @@ namespace geom
 			(cos2 >= 1) ? 0 :
 			acosf(cos2);
 
-		float rs = (alpha2 / 2) * 180.0f / pi;
+		float angle = (alpha2 / 2) * 180.0f / pi;
 
 		if (dotProd < 0)
-			rs = 180.0f - rs;
+			angle = 180.0f - angle;
 
 		float det = (ab.x * cb.y - ab.y * cb.x);
 
 		if (det < 0)
-			rs = -rs;
+			angle = -angle;
 
-		return (int) (floor(rs + 0.5));
+		return (int) (floor(angle + 0.5));
 	}
 
 	// check if segments AB and CD intersect each other
@@ -55,36 +53,41 @@ namespace geom
 			 && ((a.x - c.x)*(d.y - c.y) - (a.y - c.y)*(d.x - c.x))
 			  * ((b.x - c.x)*(d.y - c.y) - (b.y - c.y)*(d.x - c.x)) < 0);
 	}
+
+
+	// check if quadrangle is resembling a rectangle
+	inline bool checkQuadrangle(vector<Point2f> &quad) {
+
+		if (!haveIntersection(quad[0], quad[2], quad[1], quad[3]))
+			return false;
+
+		if (haveIntersection(quad[0], quad[1], quad[2], quad[3])
+			|| haveIntersection(quad[1], quad[2], quad[3], quad[0]))
+			return false;
+
+			int minAng = 180, maxAng = 0;
+
+		for (size_t i = 0; i < 4; i++) {
+			int ang = abs(getAngle(quad[i], quad[(i + 1) % 4], quad[(i + 2) % 4]));
+			minAng = min(minAng, ang);
+			maxAng = max(maxAng, ang);
+		}
+
+		if (minAng < 20 || maxAng < 70)
+			return false;
+
+		float minEdge, maxEdge;
+		minEdge = maxEdge = norm(quad[0] - quad[1]);
+
+		for (int i = 1; i < 4; i++) {
+			float Edge = norm(quad[i] - quad[(i + 1) % 4]);
+			minEdge = min(minEdge, Edge);
+			maxEdge = max(maxEdge, Edge);
+		}
+
+		return minEdge > 15 && (maxEdge / minEdge < 20);
+	}
 }
 
-// check if quadrangle is resembling to a rectangle
-inline bool checkQuadrangle(vector<Point2f> &quad) {
-
-	if (   geom::haveIntersection(quad[0], quad[1], quad[2], quad[3])
-		|| geom::haveIntersection(quad[1], quad[2], quad[3], quad[0]))
-		return false;
-
-	int minAng = 180, maxAng = 0;
-
-	for (size_t i = 0; i < 4; i++) {
-		int ang = abs(geom::getAngle(quad[i], quad[(i + 1) % 4], quad[(i + 2) % 4]));
-		minAng = min(minAng, ang);
-		maxAng = max(maxAng, ang);
-	}
-
-	if (minAng < 20 || maxAng < 70)
-		return false;
-
-	float minEdge, maxEdge;
-	minEdge = maxEdge = norm(quad[0] - quad[1]);
-
-	for (int i = 1; i < 4; i++) {
-		float Edge = norm(quad[i] - quad[(i + 1) % 4]);
-		minEdge = min(minEdge, Edge);
-		maxEdge = max(maxEdge, Edge);
-	}
-
-	return minEdge > 15 && (maxEdge / minEdge < 20);
-}
 
 #endif

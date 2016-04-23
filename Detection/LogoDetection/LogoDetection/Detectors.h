@@ -9,12 +9,18 @@
 #ifndef DETECTORS_H
 #define DETECTORS_H
 
-class Detector {
+class Logger {
+public:
+	static ofstream clocklog;
+	static ofstream errlog;
+};
+
+class Detector : public Logger {
 protected:
 	String name;
 	bool working = false;
 	Detector();
-	static ofstream clocklog;
+
 public:
 	String getName() const;
 	bool isWorking() const;

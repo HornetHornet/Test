@@ -2,9 +2,12 @@
 #include "GeneralTransforms.h"
 #include "Geometry.h"
 
-/*members of Detector */
+/*members of Logger*/
 
-ofstream Detector::clocklog("clock.log", std::ofstream::app);
+ofstream Logger::clocklog("clock.log", std::ofstream::app);
+ofstream Logger::errlog("err.log", std::ofstream::app);
+
+/*members of Detector */
 
 Detector::Detector()
 	: working(false)
@@ -36,41 +39,54 @@ void SiftDetector::process(Mat img, bool isScene) {
 	if (image.empty())
 		return;
 
-	//reduce(image, 20);
+	//trnsf::reduce(image, 20);
+	trnsf::resize(image, isScene ? 780 : 256);
+
+	if (image.channels() == 4) 
+		trnsf::alpha_to_white(image);
+
 	cvtColor(image, image, CV_BGR2GRAY);
-	filterIt(image);
-	shrinkTo(image, isScene ? 1024 : 256);
 
-	cout << "	keypoints..   ";
-	SiftDetector::detector.detect(image, keypoints);
-	cout << keypoints.size() << endl;
+	try {
+		trnsf::filter(image);
 
-	if (keypoints.size() < 3)
-		return;
+		cout << "	keypoints..   ";
+		SiftDetector::detector.detect(image, keypoints);
+		cout << keypoints.size() << endl;
 
-	cout << "	descriptors.. ";
-	SiftDetector::extractor.compute(image, keypoints, descriptors);
-	cout << descriptors.size() << endl << endl;
+		if (keypoints.size() < 3)
+			return;
 
-	working = true;
+		cout << "	descriptors.. ";
+		SiftDetector::extractor.compute(image, keypoints, descriptors);
+		cout << descriptors.size() << endl << endl;
+
+		working = true;
+	}
+	catch (Exception e) {
+		Logger::errlog << e.msg << endl << "img type: " << image.type() << endl;
+	}
+
 	return;
 };
 
 // find matches in two precalculated sets of keypoints and descriptors
 bool SiftDetector::match(SiftDetector sd_scene, Mat &img_scene) {
 
-	cout << endl
+	cout << endl 
 		<< " matching  " << sd_scene.name << endl
 		<< "      and  " << name << endl;
 
-	std::vector< DMatch > matches;
+	if (!working || !sd_scene.isWorking())
+		return false;
 
+	std::vector< DMatch > matches;
 	ofstream clocklog("clock.log", std::ofstream::app);
 	time_t start = clock();
 
 	SiftDetector::matcher.match(descriptors, sd_scene.descriptors, matches);
 
-	clocklog << endl << name << " and " << sd_scene.name << endl
+	Logger::clocklog << endl << name << " and " << sd_scene.name << endl
 			<< "match() took: " << clock() - start << endl
 			<< "descriptors.size(): " << descriptors.size() << endl
 			<< "Sift_scne.descriptors.size(): " << sd_scene.descriptors.size() << endl;
@@ -99,7 +115,7 @@ bool SiftDetector::match(SiftDetector sd_scene, Mat &img_scene) {
 		good_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
 		vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
 
-	imshow("Good Matches & Object detection", img_matches);
+	//imshow("Good Matches & Object detection", img_matches);
 
 	std::vector<Point2f> obj_points;
 	std::vector<Point2f> scn_points;
@@ -117,7 +133,7 @@ bool SiftDetector::match(SiftDetector sd_scene, Mat &img_scene) {
 
 		Mat H = findHomography(obj_points, scn_points, CV_RANSAC);
 
-		clocklog << "findHomography() took: " << clock() - start << endl
+		Logger::clocklog << "findHomography() took: " << clock() - start << endl
 			<< "obj_points: " << obj_points.size() << endl
 			<< "scn_points: " << scn_points.size() << endl << endl;
 				
@@ -131,38 +147,40 @@ bool SiftDetector::match(SiftDetector sd_scene, Mat &img_scene) {
 
 		perspectiveTransform(obj_corners, scn_corners, H);
 
-		/*for (int i = 0; i < 4; i++) {
-			line(img_matches,
-				scn_corners[i] + Point2f(image.cols, 0),
-				scn_corners[(i + 1) % 4] + Point2f(image.cols, 0),
-				Scalar(0, 0, 255), 2
-				);
-		}
-				
-		for (int i = 0; i < 4; i++)
-			line(img_scene, scn_corners[i], scn_corners[(i + 1) % 4], Scalar(0, 0, 255), 1);
+		//for (int i = 0; i < 4; i++) {
+		//	line(img_matches,
+		//		scn_corners[i] + Point2f(image.cols, 0),
+		//		scn_corners[(i + 1) % 4] + Point2f(image.cols, 0),
+		//		Scalar(0, 0, 255), 2
+		//		);
+		//}
+		//		
+		//for (int i = 0; i < 4; i++)
+		//	line(img_scene, scn_corners[i], scn_corners[(i + 1) % 4], Scalar(0, 0, 255), 1);
 
-		imshow("Good Matches & Object detection", img_matches);*/
+		//imshow("Good Matches & Object detection", img_matches); cv::waitKey(50);
 
-		if (checkQuadrangle(scn_corners)) {
+		if (geom::checkQuadrangle(scn_corners)) {
 			clocklog << "matched";
+
 			for (int i = 0; i < 4; i++)
 				line(img_scene, scn_corners[i], scn_corners[(i + 1) % 4], Scalar(0, 255, 0), 3);
+
+			Point2f center;
 
 			putText(img_scene, to_upper_copy<std::string>(name), 
 				Point(scn_corners[0].x, scn_corners[0].y - 5), FONT_HERSHEY_DUPLEX, 0.5,
 				Scalar(255, 255, 0), 1, 1, 0);
+
+			//cv::waitKey(0);
+
 			return true;
 		}
 	}
-	catch (Exception e) {
-
-		ofstream errlog("err.log", std::ofstream::app);
-			
-		errlog << name << " and " << sd_scene.name << endl
+	catch (Exception e) {			
+		Logger::errlog << name << " and " << sd_scene.name << endl
 			<< "obj_points " << obj_points.size() << endl
 			<< "scn_points " << scn_points.size() << endl << endl;
-
 	}
 	return false;
 }

@@ -15,7 +15,13 @@ static TeeStream tout;
 
 String window_name = "LogoDetection";
 
-string getSessionTime() {
+inline double tick(int64 t, bool reload = false) {
+	double passed = ((double)getTickCount() - t) / getTickFrequency();	
+	t = reload ? getTickCount() : t;
+	return passed;
+}
+
+string get_session_id() {
 
 	using namespace std;
 	using namespace std::chrono;
@@ -26,18 +32,18 @@ string getSessionTime() {
 	struct tm local_tm;
 	localtime_s(&local_tm, &tt);
 
-	std::stringstream session;
-	session << "D" << local_tm.tm_mday
+	std::stringstream session_id;
+	session_id << "D" << local_tm.tm_mday
 		<< "_H" << local_tm.tm_hour
 		<< "_M" << (local_tm.tm_min / 10) * 10;
 
-	return session.str();
+	return session_id.str();
 }
 
 bool openImage(const path &imagePath, Mat &image) {
 
 	//tout << " opening " << imagePath << endl;
-	image = imread(imagePath.string());
+	image = imread(imagePath.string(), CV_LOAD_IMAGE_UNCHANGED);
 
 	if (!image.empty()) {
 		tout << " opened " << imagePath.filename().string() << endl << endl;
@@ -71,13 +77,11 @@ int main(int argc, char ** argv) {
 		return -3;
 	}
 
-	string sessionTime = getSessionTime();
-	fout.open("logo_" + sessionTime + ".log", std::ofstream::app);
-
+	string session_id = get_session_id();
+	fout.open("logo_" + session_id + ".log", std::ofstream::app);
 	Tee tee(std::cout, fout);
 	tout.open(tee);
-
-	create_directory(path("results_" + sessionTime));
+	create_directory(path("results_" + session_id));
 
 	std::vector<SiftDetector> objects;
 	double t = (double)getTickCount();
@@ -87,7 +91,7 @@ int main(int argc, char ** argv) {
 		cout << " object " << objectPath.stem() << endl;
 
 		if (openImage(objectPath, objectImage)) {
-			SiftDetector detector("obj_" + objectPath.filename().string());
+			SiftDetector detector(objectPath.filename().string());
 			detector.process(objectImage);
 
 			if (detector.isWorking())
@@ -97,45 +101,46 @@ int main(int argc, char ** argv) {
 		}
 	}
 
-	tout << "preproc time: " << ((double)getTickCount() - t) / getTickFrequency() << endl;
-	t = getTickCount();
+	tout << "preproc time: " << tick(t, true) << endl;
 
 	int detections = 0;
-	int scene_processed = 0;
+	int scn_proc = 0;
 
 	for each (path path_scene in path_scenes) {
 
-		cout << endl << "scene " << path_scene.stem() << endl;
+		tout << "time passed: " << tick(t) << " seconds" << endl
+			<< endl << "scene " << ++scn_proc << "/ " << path_scenes.size() << " " << path_scene.stem() << endl;
 
 		Mat img_scene;
 		SiftDetector sd_scene("scn_" + path_scene.filename().string());
 
 		if (openImage(path_scene, img_scene)) {
 
-			shrinkTo(img_scene, 780);
+			trnsf::resize(img_scene, 780);
 			sd_scene.process(img_scene.clone(), true);
 
 			if (sd_scene.isWorking()) {
-				int obj_processed = 0;
+				int obj_proc = 0;
 				for each (SiftDetector object in objects) {
+					//cv::waitKey(50);
+
+					cout << endl << "object " << ++obj_proc << "/ " << objects.size() << endl;
+
 					if (object.match(sd_scene, img_scene)) {
 						tout << " got " << object.getName() << " on " << sd_scene.getName() << endl;
 						detections++;
 						//break;
 					}
-					cout << endl << "object " << ++obj_processed << "/ " << objects.size() << endl;
-					//cv::waitKey(50);
 				}
 				//imshow("Logo Detection", img_scene);
-				imwrite("results_" + sessionTime + "/res_for_" + path_scene.stem().string() + ".jpg", img_scene);
+				imwrite("results_" + session_id + "/res_for_" + path_scene.stem().string() + ".jpg", img_scene);
 			}
 		}
-		cout << " scenes " << ++scene_processed << "/ " << path_scenes.size() << endl;
 	}
 
-	tout << "DONE" << endl;
-	tout << "total time: " << ((double)getTickCount() - t) / getTickFrequency() << " seconds" << endl;
-	tout << "detections:  " << detections << endl;
+	tout << "DONE" << endl
+		<< "total time: " << tick(t) << " seconds" << endl
+		<< "detections:  " << detections << endl;
 	cv::waitKey(0);
 
 	return 0;

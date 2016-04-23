@@ -6,43 +6,56 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
-using namespace cv;
+namespace trnsf 
+{
+	//resize the Mat down if one of it's dimensions is bigger than size
+	static void resize(Mat &image, double size) {
+		if (max(image.rows, image.cols) > size) {
+			double resizeFactor = min(size / image.rows, size / image.cols);
+			cv::resize(image, image, Size(), resizeFactor, resizeFactor, cv::INTER_CUBIC);
+		}
+	};
 
-//resize the Mat down if it's too big
-static void shrinkTo(Mat &image, double size) {
-	if (max(image.rows, image.cols) > size) {
-		double resizeFactor = min(size / image.rows, size / image.cols);
-		resize(image, image, Size(), resizeFactor, resizeFactor, cv::INTER_CUBIC);
-	}
-};
-
-//apply bilateralFilter with kernel = 7
-static void filterIt(Mat &image) {
-	static const int filteringKernel = 9;
-	Mat imCopy = image.clone();
-	bilateralFilter(image, imCopy, filteringKernel, filteringKernel * 2, filteringKernel / 2);
-	// 	image = imCopy.clone(); medianBlur(image, image, 3);
-}
-
-//
-static void reduce(Mat& image, int div) {
-
-	static int divideWith;
-	static uchar table[256];
-	static Mat lookUpTable(1, 256, CV_8U);
-	static uchar* p = lookUpTable.data;
-
-	if (divideWith != div) {
-		divideWith = div;
-		for (int i = 0; i < 256; ++i)
-			table[i] = (uchar)(divideWith * (i / divideWith));
-
-		for (int i = 0; i < 256; ++i)
-			p[i] = table[i];
+	//apply bilateralFilter
+	static void filter(Mat &image, int filteringKernel = 9) {
+			Mat imCopy = image.clone();
+			bilateralFilter(image, imCopy, filteringKernel, filteringKernel * 2, filteringKernel / 2);
+			// 	image = imCopy.clone(); medianBlur(image, image, 3);
 	}
 
-	LUT(image, lookUpTable, image);
-}
+	// reduce colors in div times
+	static void reduce(Mat& image, int div) {
 
+		static int divideWith;
+		static uchar table[256];
+		static Mat lookUpTable(1, 256, CV_8U);
+		static uchar* p = lookUpTable.data;
+
+		if (divideWith != div) {
+			divideWith = div;
+			for (int i = 0; i < 256; ++i)
+				table[i] = (uchar)(divideWith * (i / divideWith));
+
+			for (int i = 0; i < 256; ++i)
+				p[i] = table[i];
+		}
+
+		LUT(image, lookUpTable, image);
+	}
+
+	//replace alpha channel with white color
+	static void alpha_to_white(Mat &image) {
+
+		Mat channels[4];
+
+		split(image, channels);
+		bitwise_not(channels[3], channels[3]);
+
+		for (size_t i = 0; i < 3; i++)
+			add(channels[i], channels[3], channels[i]);
+
+		merge(channels, 3, image);
+	};
+}
 
 #endif
