@@ -40,16 +40,12 @@ string get_session_id() {
 	return session_id.str();
 }
 
-bool openImage(const path &imagePath, Mat &image) {
-
-	//tout << " opening " << imagePath << endl;
+inline bool openImage(const path &imagePath, Mat &image) {
 	image = imread(imagePath.string(), CV_LOAD_IMAGE_UNCHANGED);
-
-	if (!image.empty()) {
-		tout << " opened " << imagePath.filename().string() << endl << endl;
+	if (image.data) {
+		cout << " opened " << imagePath.filename().string() << endl << endl;
 		return true;
 	}
-	
 	tout << "ERROR: failed to open " << imagePath << endl << endl;
 	return false;
 }
@@ -101,33 +97,32 @@ int main(int argc, char ** argv) {
 		}
 	}
 
-	tout << "preproc time: " << tick(t, true) << endl;
-
 	int detections = 0;
 	int scn_proc = 0;
 
 	for each (path path_scene in path_scenes) {
 
-		tout << "time passed: " << tick(t) << " seconds" << endl
-			<< endl << "scene " << ++scn_proc << "/ " << path_scenes.size() << " " << path_scene.stem() << endl;
+		tout << endl << "time passed: " << tick(t) << " seconds" << endl << endl 
+			<< "scene: " << ++scn_proc << "/ " << path_scenes.size() << " " << path_scene.stem() << endl;
 
 		Mat img_scene;
 		SiftDetector sd_scene("scn_" + path_scene.filename().string());
 
 		if (openImage(path_scene, img_scene)) {
 
-			trnsf::resize(img_scene, 780);
+			trnsf::preciseResize(img_scene, 780);
 			sd_scene.process(img_scene.clone(), true);
 
 			if (sd_scene.isWorking()) {
 				int obj_proc = 0;
 				for each (SiftDetector object in objects) {
+					
 					//cv::waitKey(50);
-
-					cout << endl << "object " << ++obj_proc << "/ " << objects.size() << endl;
+					cout << '\r' << "object: " << ++obj_proc << "/ " << objects.size();
 
 					if (object.match(sd_scene, img_scene)) {
-						tout << " got " << object.getName() << " on " << sd_scene.getName() << endl;
+						fout << "got ";
+						tout << " " << object.getName() << endl;
 						detections++;
 						//break;
 					}
@@ -138,10 +133,10 @@ int main(int argc, char ** argv) {
 		}
 	}
 
-	tout << "DONE" << endl
+	tout << endl << "DONE" << endl
 		<< "total time: " << tick(t) << " seconds" << endl
 		<< "detections:  " << detections << endl;
-	cv::waitKey(0);
+	cv::waitKey();
 
 	return 0;
 }

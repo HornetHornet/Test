@@ -6,6 +6,16 @@
 
 ofstream Logger::clocklog("clock.log", std::ofstream::app);
 ofstream Logger::errlog("err.log", std::ofstream::app);
+time_t Logger::start = clock();
+
+inline void Logger::reset_clock() {
+	start = clock();
+}
+
+inline void Logger::write_clock(const string &name) {
+	Logger::clocklog << name << " took " << clock() - start << endl;
+	start = clock();
+}
 
 /*members of Detector */
 
@@ -23,6 +33,7 @@ String Detector::getName() const {
 
 /*members of SiftDetector */
 
+//gpu::BruteForceMatcher_GPU<cv::L2<float>> SiftDetector::gpu_matcher;
 FlannBasedMatcher SiftDetector::matcher;
 SiftFeatureDetector SiftDetector::detector(400);
 SiftDescriptorExtractor SiftDetector::extractor;
@@ -39,32 +50,37 @@ void SiftDetector::process(Mat img, bool isScene) {
 	if (image.empty())
 		return;
 
-	//trnsf::reduce(image, 20);
-	trnsf::resize(image, isScene ? 780 : 256);
+	if (!isScene)
+		trnsf::resizeDown(image, 256);
 
-	if (image.channels() == 4) 
+	if (image.channels() == 4)
 		trnsf::alpha_to_white(image);
 
 	cvtColor(image, image, CV_BGR2GRAY);
+	image.convertTo(image, -1, 1.5, 0);
 
 	try {
-		trnsf::filter(image);
 
 		cout << "	keypoints..   ";
 		SiftDetector::detector.detect(image, keypoints);
 		cout << keypoints.size() << endl;
 
-		if (keypoints.size() < 3)
+		if (keypoints.size() < 30)
 			return;
 
 		cout << "	descriptors.. ";
 		SiftDetector::extractor.compute(image, keypoints, descriptors);
 		cout << descriptors.size() << endl << endl;
 
+		//gm_descriptors.upload(descriptors);
+
 		working = true;
 	}
 	catch (Exception e) {
-		Logger::errlog << e.msg << endl << "img type: " << image.type() << endl;
+		Logger::errlog 
+			<< name << endl 
+			<< e.msg << endl 
+			<< "img type: " << image.type() << endl;
 	}
 
 	return;
@@ -73,23 +89,28 @@ void SiftDetector::process(Mat img, bool isScene) {
 // find matches in two precalculated sets of keypoints and descriptors
 bool SiftDetector::match(SiftDetector sd_scene, Mat &img_scene) {
 
-	cout << endl 
-		<< " matching  " << sd_scene.name << endl
-		<< "      and  " << name << endl;
+	//cout << endl 
+	//	<< " matching  " << sd_scene.name << endl
+	//	<< "      and  " << name << endl;
 
 	if (!working || !sd_scene.isWorking())
 		return false;
 
 	std::vector< DMatch > matches;
 	ofstream clocklog("clock.log", std::ofstream::app);
-	time_t start = clock();
 
+	Logger::clocklog << endl
+		<< name << " and " << sd_scene.name << endl
+		<< "kepoints: " << keypoints.size() << " \\ " << sd_scene.keypoints.size() << endl
+		<< "descriptors: " << descriptors.size() << " \\ " << sd_scene.descriptors.size() << endl;
+
+	//Logger::reset_clock();
+	//SiftDetector::gpu_matcher.match(gm_descriptors, sd_scene.gm_descriptors, matches);
+	//Logger::write_clock("gpu_matcher");
+
+	Logger::reset_clock();
 	SiftDetector::matcher.match(descriptors, sd_scene.descriptors, matches);
-
-	Logger::clocklog << endl << name << " and " << sd_scene.name << endl
-			<< "match() took: " << clock() - start << endl
-			<< "descriptors.size(): " << descriptors.size() << endl
-			<< "Sift_scne.descriptors.size(): " << sd_scene.descriptors.size() << endl;
+	Logger::write_clock("matcher()");
 
 	double max_dist = 0; double min_dist = 100;
 
@@ -106,14 +127,16 @@ bool SiftDetector::match(SiftDetector sd_scene, Mat &img_scene) {
 			good_matches.push_back(matches[i]);
 	}
 
-	if (good_matches.size() < 4)
+	Logger::clocklog << "good_matches: " << good_matches.size() << endl;
+
+	if (good_matches.size() < 9)
 		return false;
 
 	Mat img_matches;
 
-	drawMatches(image, keypoints, sd_scene.image, sd_scene.keypoints,
-		good_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
-		vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+	//drawMatches(image, keypoints, sd_scene.image, sd_scene.keypoints,
+	//	good_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
+	//	vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
 
 	//imshow("Good Matches & Object detection", img_matches);
 
@@ -122,20 +145,16 @@ bool SiftDetector::match(SiftDetector sd_scene, Mat &img_scene) {
 
 	//-- Get the keypoints from the good matches
 	for (int i = 0; i < good_matches.size(); i++) {
-		//if (i % 2) continue;
-		obj_points.push_back(keypoints[good_matches[i].queryIdx].pt);
-		scn_points.push_back(sd_scene.keypoints[good_matches[i].trainIdx].pt);
+	/*	if (rand() % 3 || good_matches.size() < 30) {*/
+			obj_points.push_back(keypoints[good_matches[i].queryIdx].pt);
+			scn_points.push_back(sd_scene.keypoints[good_matches[i].trainIdx].pt);
+	/*	}*/
 	}
 
 	try {
 
-		start = clock();
-
 		Mat H = findHomography(obj_points, scn_points, CV_RANSAC);
-
-		Logger::clocklog << "findHomography() took: " << clock() - start << endl
-			<< "obj_points: " << obj_points.size() << endl
-			<< "scn_points: " << scn_points.size() << endl << endl;
+		Logger::write_clock("findHomography()");
 				
 		std::vector<Point2f> obj_corners(4);
 		std::vector<Point2f> scn_corners(4);
@@ -154,14 +173,14 @@ bool SiftDetector::match(SiftDetector sd_scene, Mat &img_scene) {
 		//		Scalar(0, 0, 255), 2
 		//		);
 		//}
-		//		
+		//
+		//imshow("Good Matches & Object detection", img_matches); cv::waitKey(50);
+		//
 		//for (int i = 0; i < 4; i++)
 		//	line(img_scene, scn_corners[i], scn_corners[(i + 1) % 4], Scalar(0, 0, 255), 1);
 
-		//imshow("Good Matches & Object detection", img_matches); cv::waitKey(50);
-
 		if (geom::checkQuadrangle(scn_corners)) {
-			clocklog << "matched";
+			clocklog << "matched" << endl;
 
 			for (int i = 0; i < 4; i++)
 				line(img_scene, scn_corners[i], scn_corners[(i + 1) % 4], Scalar(0, 255, 0), 3);
@@ -170,7 +189,7 @@ bool SiftDetector::match(SiftDetector sd_scene, Mat &img_scene) {
 
 			putText(img_scene, to_upper_copy<std::string>(name), 
 				Point(scn_corners[0].x, scn_corners[0].y - 5), FONT_HERSHEY_DUPLEX, 0.5,
-				Scalar(255, 255, 0), 1, 1, 0);
+				Scalar(255, 127, 0), 1, 1, 0);
 
 			//cv::waitKey(0);
 
@@ -178,7 +197,8 @@ bool SiftDetector::match(SiftDetector sd_scene, Mat &img_scene) {
 		}
 	}
 	catch (Exception e) {			
-		Logger::errlog << name << " and " << sd_scene.name << endl
+		Logger::errlog 
+			<< name << " and " << sd_scene.name << endl
 			<< "obj_points " << obj_points.size() << endl
 			<< "scn_points " << scn_points.size() << endl << endl;
 	}

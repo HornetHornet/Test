@@ -61,11 +61,11 @@ namespace geom
 		if (!haveIntersection(quad[0], quad[2], quad[1], quad[3]))
 			return false;
 
-		if (haveIntersection(quad[0], quad[1], quad[2], quad[3])
-			|| haveIntersection(quad[1], quad[2], quad[3], quad[0]))
+		if (haveIntersection(quad[0], quad[1], quad[2], quad[3]) || 
+			haveIntersection(quad[1], quad[2], quad[3], quad[0]))
 			return false;
 
-			int minAng = 180, maxAng = 0;
+		int minAng = 180, maxAng = 0;
 
 		for (size_t i = 0; i < 4; i++) {
 			int ang = abs(getAngle(quad[i], quad[(i + 1) % 4], quad[(i + 2) % 4]));
@@ -74,6 +74,13 @@ namespace geom
 		}
 
 		if (minAng < 20 || maxAng < 70)
+			return false;
+		
+		float norm0 = norm(quad[0]);
+
+		if (norm0 > norm(quad[1]) && 
+			norm0 > norm(quad[2]) && 
+			norm0 > norm(quad[3]))
 			return false;
 
 		float minEdge, maxEdge;
