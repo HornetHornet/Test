@@ -3,50 +3,22 @@
 #include "Detectors.h"
 #include "GetFiles.h"
 #include "GeneralTransforms.h"
-
-#include <boost/iostreams/stream.hpp>
-#include <boost/iostreams/tee.hpp>
-
-typedef boost::iostreams::tee_device<std::ostream, std::ofstream> Tee;
-typedef boost::iostreams::stream<Tee> TeeStream;
-
-static std::ofstream fout;
-static TeeStream tout;
+#include <thread>
 
 String window_name = "LogoDetection";
 
-inline double tick(int64 t, bool reload = false) {
+inline double tick(double t) {
 	double passed = ((double)getTickCount() - t) / getTickFrequency();	
-	t = reload ? getTickCount() : t;
 	return passed;
-}
-
-string get_session_id() {
-
-	using namespace std;
-	using namespace std::chrono;
-
-	system_clock::time_point now = system_clock::now();
-	time_t tt = system_clock::to_time_t(now);
-
-	struct tm local_tm;
-	localtime_s(&local_tm, &tt);
-
-	std::stringstream session_id;
-	session_id << "D" << local_tm.tm_mday
-		<< "_H" << local_tm.tm_hour
-		<< "_M" << (local_tm.tm_min / 10) * 10;
-
-	return session_id.str();
 }
 
 inline bool openImage(const path &imagePath, Mat &image) {
 	image = imread(imagePath.string(), CV_LOAD_IMAGE_UNCHANGED);
 	if (image.data) {
-		cout << " opened " << imagePath.filename().string() << endl << endl;
+		cout << "opened: " << imagePath.filename().string() << endl;
 		return true;
 	}
-	tout << "ERROR: failed to open " << imagePath << endl << endl;
+	logg::tout << "ERROR: failed to open " << imagePath << endl;
 	return false;
 }
 
@@ -57,85 +29,118 @@ int main(int argc, char ** argv) {
 		return -1;
 	}
 
-	std::vector<path> path_scenes;
-	std::vector<path> path_objects;
+	std::vector<path> scn_paths, obj_paths;
+	
+	cout << endl;
 
-	path_scenes = getFiles(argv[1], IMAGES);
-	path_objects = getFiles(argv[2], IMAGES);
+	scn_paths = getFiles(argv[1], IMAGES);
+	obj_paths = getFiles(argv[2], IMAGES);
 
-	if (path_scenes.size() == 0) {
+	cout << endl;
+
+	if (scn_paths.size() == 0) {
 		cout << "ERROR: no scenes" << endl;
 		return -2;
 	}
 
-	if (path_objects.size() == 0)  {
+	if (obj_paths.size() == 0)  {
 		cout << "ERROR: no objects" << endl;
 		return -3;
 	}
 
-	string session_id = get_session_id();
-	fout.open("logo_" + session_id + ".log", std::ofstream::app);
-	Tee tee(std::cout, fout);
-	tout.open(tee);
+	string session_id = logg::get_session_id();
+
 	create_directory(path("results_" + session_id));
 
+	//list<SiftDetector> objects;
 	std::vector<SiftDetector> objects;
 	double t = (double)getTickCount();
-	
-	for each (path objectPath in path_objects) {
-		Mat objectImage;
-		cout << " object " << objectPath.stem() << endl;
 
-		if (openImage(objectPath, objectImage)) {
-			SiftDetector detector(objectPath.filename().string());
-			detector.process(objectImage);
+	{
+		vector<thread> threads;
+		vector<Mat> images;
 
-			if (detector.isWorking())
-				objects.push_back(detector);
-			else
-				tout << "ERROR: can't work with " << objectPath.filename() << endl;
-		}
-	}
-
-	int detections = 0;
-	int scn_proc = 0;
-
-	for each (path path_scene in path_scenes) {
-
-		tout << endl << "time passed: " << tick(t) << " seconds" << endl << endl 
-			<< "scene: " << ++scn_proc << "/ " << path_scenes.size() << " " << path_scene.stem() << endl;
-
-		Mat img_scene;
-		SiftDetector sd_scene("scn_" + path_scene.filename().string());
-
-		if (openImage(path_scene, img_scene)) {
-
-			trnsf::preciseResize(img_scene, 780);
-			sd_scene.process(img_scene.clone(), true);
-
-			if (sd_scene.isWorking()) {
-				int obj_proc = 0;
-				for each (SiftDetector object in objects) {
-					
-					//cv::waitKey(50);
-					cout << '\r' << "object: " << ++obj_proc << "/ " << objects.size();
-
-					if (object.match(sd_scene, img_scene)) {
-						fout << "got ";
-						tout << " " << object.getName() << endl;
-						detections++;
-						//break;
-					}
-				}
-				//imshow("Logo Detection", img_scene);
-				imwrite("results_" + session_id + "/res_for_" + path_scene.stem().string() + ".jpg", img_scene);
+		for each (path obj_path in obj_paths) {
+			Mat obj_img;
+			if (openImage(obj_path, obj_img)) {
+				objects.push_back(SiftDetector(obj_path.filename().string()));
+				trnsf::resizeDown(obj_img, 256);
+				images.push_back(obj_img);
 			}
 		}
+
+		//for (size_t i = 0; i < images.size(); i++) {
+		//	list<SiftDetector>::iterator obj = objects.begin();
+		//	threads.push_back(thread(&SiftDetector::process, obj, images[i]));
+		//	obj++;
+		//}
+
+		for (size_t i = 0; i < images.size(); i++)
+			threads.push_back(thread(&SiftDetector::process, &objects[i], images[i]));
+
+		cout << endl << "processed " << 0 << "/ " << threads.size() << " objects";
+
+		for (size_t i = 0; i < threads.size(); i++) {
+			threads[i].join();
+			cout << '\r' << "processed " << i + 1 << "/ " << threads.size() << " objects";
+		}
+
+		cout << endl << endl;
 	}
 
-	tout << endl << "DONE" << endl
+	for each (SiftDetector detector in objects) {
+		if (!detector.isWorking())
+			logg::tout << " ! can't work with " << detector.getName() << endl;
+	}
+
+	//for (list<SiftDetector>::iterator it = objects.begin(); it != objects.end(); it++) {
+	//	if (!it->isWorking()) {
+	//		tout << "\can't work with " << detector.getName() << endl;
+	//		objects.erase(it);
+	//	}
+	//}
+
+	int scn_proc = 0;
+
+	for each (path scn_path in scn_paths) {
+
+		logg::tout << endl << endl << "time passed: " << tick(t) << " seconds"
+			<< endl << "scene: " << ++scn_proc << "/ " << scn_paths.size() << " " << endl;
+			
+
+		Mat img_scene;
+
+		if (!openImage(scn_path, img_scene))
+			continue;
+
+		trnsf::preciseResize(img_scene, 780);
+
+		SiftDetector sd_scene("scn_" + scn_path.filename().string());
+		sd_scene.process(img_scene.clone());
+
+		if (!sd_scene.isWorking())
+			continue;
+
+		int obj_proc = 0;
+		vector<thread> threads;
+
+		cout << endl;
+
+		for (size_t i = 0; i < objects.size(); i++) {
+			if (objects[i].isWorking())
+				threads.push_back(thread(&SiftDetector::match, &objects[i], sd_scene, img_scene));
+		}
+
+		for (size_t i = 0; i < threads.size(); i++)
+			threads[i].join();
+
+		imwrite("results_" + session_id + "/res_for_" + scn_path.stem().string() + ".jpg", img_scene);
+	}
+
+	logg::tout << endl << "DONE" << endl
 		<< "total time: " << tick(t) << " seconds" << endl
-		<< "detections:  " << detections << endl;
+		<< "detections:  " << SiftDetector::detections << endl;
+
 	cv::waitKey();
 
 	return 0;

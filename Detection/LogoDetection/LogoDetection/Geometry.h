@@ -46,7 +46,7 @@ namespace geom
 	}
 
 	// check if segments AB and CD intersect each other
-	inline bool haveIntersection(Point2f a, Point2f b, Point2f c, Point2f d) {
+	inline bool intersect(Point2f a, Point2f b, Point2f c, Point2f d) {
 
 		return (((c.x - a.x)*(b.y - a.y) - (c.y - a.y)*(b.x - a.x))
 			  * ((d.x - a.x)*(b.y - a.y) - (d.y - a.y)*(b.x - a.x)) < 0
@@ -58,11 +58,11 @@ namespace geom
 	// check if quadrangle is resembling a rectangle
 	inline bool checkQuadrangle(vector<Point2f> &quad) {
 
-		if (!haveIntersection(quad[0], quad[2], quad[1], quad[3]))
+		if (!intersect(quad[0], quad[2], quad[1], quad[3]))
 			return false;
 
-		if (haveIntersection(quad[0], quad[1], quad[2], quad[3]) || 
-			haveIntersection(quad[1], quad[2], quad[3], quad[0]))
+		if (intersect(quad[0], quad[1], quad[2], quad[3]) ||
+			intersect(quad[1], quad[2], quad[3], quad[0]))
 			return false;
 
 		int minAng = 180, maxAng = 0;

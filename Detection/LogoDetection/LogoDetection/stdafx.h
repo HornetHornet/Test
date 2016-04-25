@@ -20,6 +20,8 @@
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/tee.hpp>
 
+#include "Logger.h"
+
 using namespace std;
 using namespace cv;
 using namespace boost::filesystem;

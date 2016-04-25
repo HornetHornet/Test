@@ -130,6 +130,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Detectors.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -137,6 +138,7 @@
     <ClInclude Include="GeneralTransforms.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="GetFiles.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

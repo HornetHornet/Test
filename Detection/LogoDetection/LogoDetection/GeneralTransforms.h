@@ -53,8 +53,8 @@ namespace trnsf
 		LUT(image, lookUpTable, image);
 	}
 
-	//replace alpha channel with white color
-	static void alpha_to_white(Mat &image) {
+	//replace transparent with grey
+	static void makeOpaque(Mat &image) {
 
 		Mat channels[4];
 
