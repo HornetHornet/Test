@@ -25,7 +25,7 @@ SiftDetector::SiftDetector(String n)  {
 	name = n;
 };
 
-// check, convert to grayscale, resize, filter, calculate keypoints and descriptors
+// check, convert to grayscale, calculate keypoints and descriptors
 void SiftDetector::process(Mat &image) {
 
 	if (!image.data)

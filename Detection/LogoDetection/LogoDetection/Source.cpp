@@ -5,8 +5,6 @@
 #include "GeneralTransforms.h"
 #include <thread>
 
-String window_name = "LogoDetection";
-
 inline double tick(double t) {
 	double passed = ((double)getTickCount() - t) / getTickFrequency();	
 	return passed;
@@ -26,7 +24,7 @@ int main(int argc, char ** argv) {
 	
 	if (argc < 3) {
 		cout << "ERROR: not enough arguments" << endl;
-		return -1;
+		return 1;
 	}
 
 	std::vector<path> scn_paths, obj_paths;
@@ -40,17 +38,15 @@ int main(int argc, char ** argv) {
 
 	if (scn_paths.size() == 0) {
 		cout << "ERROR: no scenes" << endl;
-		return -2;
+		return 2;
 	}
 
 	if (obj_paths.size() == 0)  {
 		cout << "ERROR: no objects" << endl;
-		return -3;
+		return 3;
 	}
 
 	string session_id = logg::get_session_id();
-
-	create_directory(path("results_" + session_id));
 
 	list<SiftDetector> detectors;
 	double t = (double)getTickCount();
@@ -93,11 +89,12 @@ int main(int argc, char ** argv) {
 		else it++;
 	}
 
-
 	if (distance(detectors.begin(), detectors.end()) == 0) {
-		cout << "ERROR: no working detectors" << endl;
+		logg::tout << "ERROR: no working detectors" << endl;
 		return 4;
 	}
+
+	create_directory(path("results_" + session_id));
 
 	int scn_proc = 0;
 
