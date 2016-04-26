@@ -26,10 +26,11 @@ SiftDetector::SiftDetector(String n)  {
 };
 
 // check, convert to grayscale, resize, filter, calculate keypoints and descriptors
-void SiftDetector::process(Mat img) {
+void SiftDetector::process(Mat &image) {
 
-	Mat image = img.clone();
-
+	if (!image.data)
+		return;
+	
 	obj_corners.resize(4);
 	obj_corners[0] = cvPoint(0, 0);
 	obj_corners[1] = cvPoint(image.cols, 0);
@@ -68,7 +69,7 @@ void SiftDetector::process(Mat img) {
 };
 
 // find matches in two precalculated sets of keypoints and descriptors
-void SiftDetector::match(SiftDetector sd_scene, Mat &img_scene) {
+void SiftDetector::match(const SiftDetector &sd_scene, Mat &img_scene) {
 
 	if (!working || !sd_scene.isWorking())
 		return;

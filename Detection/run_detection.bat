@@ -1,4 +1,4 @@
-"C:\Test\Detection\LogoDetection\x64\Debug\LogoDetection.exe"^
+"LogoDetection\x64\Debug\LogoDetection.exe"^
  "C:\Test\DataSet_pic"^
  "C:\Test\DataSet_pic\reference"
  

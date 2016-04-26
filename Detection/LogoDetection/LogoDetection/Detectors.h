@@ -30,8 +30,8 @@ class SiftDetector : public Detector {
 
 public:
 	SiftDetector(String n);
-	void process(Mat image);
-	void match(SiftDetector sd_scene, Mat &img_scene);
+	void process(Mat &image);
+	void match(const SiftDetector &sd_scene, Mat &img_scene);
 
 	static int SiftDetector::detections;
 };

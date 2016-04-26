@@ -52,31 +52,27 @@ int main(int argc, char ** argv) {
 
 	create_directory(path("results_" + session_id));
 
-	//list<SiftDetector> objects;
-	std::vector<SiftDetector> objects;
+	list<SiftDetector> detectors;
 	double t = (double)getTickCount();
 
 	{
-		vector<thread> threads;
-		vector<Mat> images;
+		std::vector<thread> threads;
+		std::vector<Mat> images;
 
 		for each (path obj_path in obj_paths) {
 			Mat obj_img;
 			if (openImage(obj_path, obj_img)) {
-				objects.push_back(SiftDetector(obj_path.filename().string()));
+				detectors.push_back(SiftDetector(obj_path.filename().string()));
 				trnsf::resizeDown(obj_img, 256);
 				images.push_back(obj_img);
 			}
 		}
 
-		//for (size_t i = 0; i < images.size(); i++) {
-		//	list<SiftDetector>::iterator obj = objects.begin();
-		//	threads.push_back(thread(&SiftDetector::process, obj, images[i]));
-		//	obj++;
-		//}
-
-		for (size_t i = 0; i < images.size(); i++)
-			threads.push_back(thread(&SiftDetector::process, &objects[i], images[i]));
+		list<SiftDetector>::iterator obj = detectors.begin();
+		for (size_t i = 0; i < images.size(); i++) {
+			threads.push_back(thread(&SiftDetector::process, &(*obj), images[i]));
+			obj++;
+		}
 
 		cout << endl << "processed " << 0 << "/ " << threads.size() << " objects";
 
@@ -88,17 +84,20 @@ int main(int argc, char ** argv) {
 		cout << endl << endl;
 	}
 
-	for each (SiftDetector detector in objects) {
-		if (!detector.isWorking())
-			logg::tout << " ! can't work with " << detector.getName() << endl;
+	list<SiftDetector>::iterator it = detectors.begin();
+	while (it != detectors.end())	{
+		if (!it->isWorking()) {
+			logg::tout << " ! can't work with " << it->getName() << endl;
+			it = detectors.erase(it);
+		}
+		else it++;
 	}
 
-	//for (list<SiftDetector>::iterator it = objects.begin(); it != objects.end(); it++) {
-	//	if (!it->isWorking()) {
-	//		tout << "\can't work with " << detector.getName() << endl;
-	//		objects.erase(it);
-	//	}
-	//}
+
+	if (distance(detectors.begin(), detectors.end()) == 0) {
+		cout << "ERROR: no working detectors" << endl;
+		return 4;
+	}
 
 	int scn_proc = 0;
 
@@ -126,10 +125,9 @@ int main(int argc, char ** argv) {
 
 		cout << endl;
 
-		for (size_t i = 0; i < objects.size(); i++) {
-			if (objects[i].isWorking())
-				threads.push_back(thread(&SiftDetector::match, &objects[i], sd_scene, img_scene));
-		}
+		for (list<SiftDetector>::iterator it = detectors.begin(); it != detectors.end(); it++)
+			if (it->isWorking())
+				threads.push_back(thread(&SiftDetector::match, &(*it), sd_scene, img_scene));
 
 		for (size_t i = 0; i < threads.size(); i++)
 			threads[i].join();
