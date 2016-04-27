@@ -26,34 +26,14 @@ namespace trnsf
 			preciseResize(image, size);
 	};
 
-	// reduce colors in div times
-	static void reduce(Mat& image, int div) {
-
-		static int divideWith;
-		static uchar table[256];
-		static Mat lookUpTable(1, 256, CV_8U);
-		static uchar* p = lookUpTable.data;
-
-		if (divideWith != div) {
-			divideWith = div;
-			for (int i = 0; i < 256; ++i)
-				table[i] = (uchar)(divideWith * (i / divideWith));
-
-			for (int i = 0; i < 256; ++i)
-				p[i] = table[i];
-		}
-
-		LUT(image, lookUpTable, image);
-	}
-
-	//replace transparent with grey
+	//replace transparent with white
 	static void makeOpaque(Mat &image) {
 
 		Mat channels[4];
 
 		split(image, channels);
 		bitwise_not(channels[3], channels[3]);
-		channels[3].convertTo(channels[3], -1, 1, -128);
+		//channels[3].convertTo(channels[3], -1, 1, -128);
 
 		for (size_t i = 0; i < 3; i++)
 			add(channels[i], channels[3], channels[i]);

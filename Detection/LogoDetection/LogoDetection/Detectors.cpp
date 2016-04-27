@@ -2,6 +2,8 @@
 #include "GeneralTransforms.h"
 #include "Geometry.h"
 
+#include <unordered_set>
+
 
 /*members of Detector */
 
@@ -52,7 +54,7 @@ void SiftDetector::process(Mat &image) {
 		logg::clck << "keypoints.size()" << name << " " << keypoints.size() << endl;
 
 		// 60 is empirical, with that little points object would not be found anyway
-		if (keypoints.size() < 60)
+		if (keypoints.size() < MIN_POINTS)
 			return;
 
 		SiftDescriptorExtractor extractor;
@@ -68,8 +70,6 @@ void SiftDetector::process(Mat &image) {
 			<< e.msg << endl 
 			<< "img type: " << image.type() << endl;
 	}
-
-	return;
 };
 
 // find matches in two precalculated sets of keypoints and descriptors
@@ -81,71 +81,69 @@ void SiftDetector::match(const SiftDetector sd_scene, Mat &img_scene) {
 	std::vector< DMatch > matches;
 	BFMatcher matcher;
 
-	logg::reset_clock();
 	matcher.match(descriptors, sd_scene.descriptors, matches);
-	logg::write_clock("match()");
 
 	double max_dist = 0, min_dist = 100;
 
-	for (int i = 0; i < descriptors.rows; i++)	{
+	for (int i = 0; i < descriptors.rows; i++) {
 		double dist = matches[i].distance;
 		if (dist < min_dist) min_dist = dist;
 		if (dist > max_dist) max_dist = dist;
 	}
 
 	std::vector< DMatch > good_matches;
-
 	for (int i = 0; i < descriptors.rows; i++) {
-		if (matches[i].distance < 3 * min_dist) 
+		if (matches[i].distance < 3 * min_dist)
 			good_matches.push_back(matches[i]);
 	}
 
-	logg::clck << "good_matches.size() " << name << " " << good_matches.size() << endl;
-
 	// less then 9 will cause false alarms
-	if (good_matches.size() < 9)
+	if (good_matches.size() < MIN_MATCHES)
 		return;
 
-	std::vector<Point2f> obj_points;
-	std::vector<Point2f> scn_points;
+	unordered_set<int> used_matches;
 
-	//-- Get the keypoints from the good matches
-	for (int i = 0; i < good_matches.size(); i++) {
-		obj_points.push_back(keypoints[good_matches[i].queryIdx].pt);
-		scn_points.push_back(sd_scene.keypoints[good_matches[i].trainIdx].pt);
-	}
+	// search for the same object while there are left any unused good_matches 
+	while ((good_matches.size() - used_matches.size()) > MIN_MATCHES) {
 
-	try {
-		logg::reset_clock();
+		std::vector<Point2f> obj_points;
+		std::vector<Point2f> scn_points;
+
+		// get the keypoints from the good matches
+		for (int i = 0; i < good_matches.size(); i++) {
+			if (used_matches.find(i) == used_matches.end()) {
+				obj_points.push_back(keypoints[good_matches[i].queryIdx].pt);
+				scn_points.push_back(sd_scene.keypoints[good_matches[i].trainIdx].pt);
+			}
+		}
+
 		Mat H = findHomography(obj_points, scn_points, CV_RANSAC);
-		logg::write_clock("findHomography()");
 
 		std::vector<Point2f> scn_corners(4);
-
 		perspectiveTransform(obj_corners, scn_corners, H);
 
-		if (geom::checkQuadrangle(scn_corners)) {
+		// check if the result looks realistic
+		if (!geom::checkQuadrangle(scn_corners))
+			return;
 
-			for (int i = 0; i < 4; i++)
-				line(img_scene, scn_corners[i], scn_corners[(i + 1) % 4], Scalar(0, 255, 0), 3);
+		SiftDetector::detections++;
+		logg::tout << "found: " << name << endl;
 
-			putText(img_scene, to_upper_copy<std::string>(name), 
-				Point(scn_corners[0].x + 10, scn_corners[0].y + 20), FONT_HERSHEY_DUPLEX, 0.5,
-				Scalar(255, 255, 255), 1, 1, 0);
+		for (int i = 0; i < 4; i++)
+			line(img_scene, scn_corners[i], scn_corners[(i + 1) % 4], Scalar(0, 255, 0), 3);
 
-			putText(img_scene, to_upper_copy<std::string>(name),
-				Point(scn_corners[0].x + 10, scn_corners[0].y + 35), FONT_HERSHEY_DUPLEX, 0.5,
-				Scalar(0, 0, 0), 1, 1, 0);
+		putText(img_scene, to_upper_copy<std::string>(name),
+			Point(scn_corners[0].x + 10, scn_corners[0].y + 20), FONT_HERSHEY_DUPLEX, 0.5,
+			Scalar(255, 255, 255), 1, 1, 0);
 
-			SiftDetector::detections++;
-			logg::tout << "found: " << name << endl;
+		putText(img_scene, to_upper_copy<std::string>(name),
+			Point(scn_corners[0].x + 10, scn_corners[0].y + 35), FONT_HERSHEY_DUPLEX, 0.5,
+			Scalar(0, 0, 0), 1, 1, 0);
+
+		// remember ids of used good_matches
+		for (int i = 0; i < good_matches.size(); i++) {
+			if (geom::isAround(sd_scene.keypoints[good_matches[i].trainIdx].pt, scn_corners))
+				used_matches.insert(i);
 		}
-	}
-	catch (Exception e) {
-		logg::err.open("errlog.log", std::ofstream::app);
-		logg::err
-			<< name << " and " << sd_scene.name << endl
-			<< "obj_points " << obj_points.size() << endl
-			<< "scn_points " << scn_points.size() << endl << endl;
 	}
 }

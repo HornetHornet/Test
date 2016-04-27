@@ -6,15 +6,14 @@
 #include "GetFiles.h"
 #include "GeneralTransforms.h"
 
-#define OBJ_MIN_HESS 350
-#define SCN_MIN_HESS 700
+#define OBJ_MIN_HESS 400
+#define SCN_MIN_HESS 750
+
 #define OBJ_SIZE 256
 #define SCN_SIZE 780
 
-
 inline double tick(double t) {
-	double passed = ((double)getTickCount() - t) / getTickFrequency();	
-	return passed;
+	return ((double)getTickCount() - t) / getTickFrequency();
 }
 
 inline bool openImage(const path &imagePath, Mat &image) {
@@ -34,13 +33,11 @@ int main(int argc, char ** argv) {
 		return 1;
 	}
 
-	std::vector<path> scn_paths, obj_paths;
-	
 	cout << endl;
 
-	scn_paths = getFiles(argv[1], IMAGES);
-	obj_paths = getFiles(argv[2], IMAGES);
-
+	std::vector<path> scn_paths = getFiles(argv[1], IMAGES);
+	std::vector<path> obj_paths = getFiles(argv[2], IMAGES);
+	
 	cout << endl;
 
 	if (scn_paths.size() == 0) {
@@ -52,8 +49,6 @@ int main(int argc, char ** argv) {
 		cout << "ERROR: no objects" << endl;
 		return 3;
 	}
-
-	string session_id = logg::get_session_id();
 
 	list<SiftDetector> detectors;
 	double t = (double)getTickCount();
@@ -71,10 +66,10 @@ int main(int argc, char ** argv) {
 			}
 		}
 
-		auto obj = detectors.begin();
+		auto it = detectors.begin();
 		for (size_t i = 0; i < images.size(); i++) {
-			threads.push_back(thread(&SiftDetector::process, &(*obj), images[i]));
-			obj++;
+			threads.push_back(thread(&SiftDetector::process, &(*it), images[i]));
+			it++;
 		}
 
 		cout << endl << "processed " << 0 << "/ " << threads.size() << " objects";
@@ -90,7 +85,8 @@ int main(int argc, char ** argv) {
 	auto it = detectors.begin();
 	while (it != detectors.end())	{
 		if (!it->isWorking()) {
-			logg::tout << " ! failed to find more than 60 points on " << it->getName() << ", won't find it"<< endl;
+			logg::tout << " ! failed to find " << MIN_POINTS 
+				<< " points on " << it->getName() << ", won't search for it"<< endl;
 			it = detectors.erase(it);
 		}
 		else it++;
@@ -101,6 +97,7 @@ int main(int argc, char ** argv) {
 		return 4;
 	}
 
+	string session_id = logg::get_session_id();
 	create_directory(path("results_" + session_id));
 
 	int scn_proc = 0;
@@ -128,9 +125,10 @@ int main(int argc, char ** argv) {
 
 		cout << endl;
 
-		for (auto it = detectors.begin(); it != detectors.end(); it++)
+		for (auto it = detectors.begin(); it != detectors.end(); it++) {
 			if (it->isWorking())
 				threads.push_back(thread(&SiftDetector::match, &(*it), sd_scene, img_scene));
+		}
 
 		for (size_t i = 0; i < threads.size(); i++)
 			threads[i].join();

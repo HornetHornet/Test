@@ -42,10 +42,10 @@ namespace geom
 		if (det < 0)
 			angle = -angle;
 
-		return (int) (floor(angle + 0.5));
+		return static_cast<int>(floor(angle + 0.5));
 	}
 
-	// check if segments AB and CD intersect each other
+	// returns true if segments AB and CD intersect each other
 	inline bool intersect(Point2f a, Point2f b, Point2f c, Point2f d) {
 
 		return (((c.x - a.x)*(b.y - a.y) - (c.y - a.y)*(b.x - a.x))
@@ -55,7 +55,7 @@ namespace geom
 	}
 
 
-	// check if quadrangle is resembling a rectangle
+	// returns true if quadrangle is resembling a rectangle
 	inline bool checkQuadrangle(vector<Point2f> &quad) {
 
 		if (!intersect(quad[0], quad[2], quad[1], quad[3]))
@@ -76,23 +76,56 @@ namespace geom
 		if (minAng < 20 || maxAng < 70)
 			return false;
 		
-		float norm0 = norm(quad[0]);
+		double norm0 = norm(quad[0]);
 
 		if (norm0 > norm(quad[1]) && 
 			norm0 > norm(quad[2]) && 
 			norm0 > norm(quad[3]))
 			return false;
 
-		float minEdge, maxEdge;
+		double minEdge, maxEdge;
 		minEdge = maxEdge = norm(quad[0] - quad[1]);
 
 		for (int i = 1; i < 4; i++) {
-			float Edge = norm(quad[i] - quad[(i + 1) % 4]);
+			double Edge = norm(quad[i] - quad[(i + 1) % 4]);
 			minEdge = min(minEdge, Edge);
 			maxEdge = max(maxEdge, Edge);
 		}
 
 		return minEdge > 15 && (maxEdge / minEdge < 20);
+	}
+
+	// returns centroid of a poligon p
+	Point2f centroid( vector<Point2f> poligon) {
+		Point2f c(0, 0);
+		float a = 0;
+
+		poligon.push_back(poligon[0]);
+
+		for (size_t i = 0; i < poligon.size() - 1; i++) {
+			float xyyx = poligon[i].x * poligon[i + 1].y - poligon[i + 1].x * poligon[i].y;
+			a += xyyx;
+			c.x += (poligon[i].x + poligon[i + 1].x) * xyyx;
+			c.y += (poligon[i].y + poligon[i + 1].y) * xyyx;
+		}
+
+		c.x /= 3 * a;
+		c.y /= 3 * a;
+
+		return c;
+	};
+
+	// returns true if point is inside a circle, circumscribing a poligon
+	bool isAround(const Point2f point, const vector<Point2f> &poligon) {
+
+		Point2f c = centroid(poligon);
+
+		double maxDist = norm(c - poligon[0]);
+
+		for (size_t i = 1; i < poligon.size(); i++)
+			maxDist = max(maxDist, norm(c - poligon[i]));
+
+		return norm(point - c) <= maxDist;
 	}
 }
 
