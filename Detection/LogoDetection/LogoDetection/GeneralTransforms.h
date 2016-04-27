@@ -26,13 +26,6 @@ namespace trnsf
 			preciseResize(image, size);
 	};
 
-	//apply bilateralFilter
-	static void filter(Mat &image, int filteringKernel = 9) {
-			Mat imCopy = image.clone();
-			bilateralFilter(image, imCopy, filteringKernel, filteringKernel * 2, filteringKernel / 2);
-			// 	image = imCopy.clone(); medianBlur(image, image, 3);
-	}
-
 	// reduce colors in div times
 	static void reduce(Mat& image, int div) {
 

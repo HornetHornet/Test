@@ -21,7 +21,8 @@ String Detector::getName() const {
 
 int SiftDetector::detections = 0;
 
-SiftDetector::SiftDetector(String n)  {
+SiftDetector::SiftDetector(String n, int minHess)  {
+	minHessian = minHess;
 	name = n;
 };
 
@@ -45,10 +46,13 @@ void SiftDetector::process(Mat &image) {
 
 	try {
 
-		SiftFeatureDetector detector(400);
+		SiftFeatureDetector detector(minHessian, 3);
 		detector.detect(image, keypoints);
 
-		if (keypoints.size() < 3)
+		logg::clck << "keypoints.size()" << name << " " << keypoints.size() << endl;
+
+		// 60 is empirical, with that little points object would not be found anyway
+		if (keypoints.size() < 60)
 			return;
 
 		SiftDescriptorExtractor extractor;
@@ -69,15 +73,17 @@ void SiftDetector::process(Mat &image) {
 };
 
 // find matches in two precalculated sets of keypoints and descriptors
-void SiftDetector::match(const SiftDetector &sd_scene, Mat &img_scene) {
+void SiftDetector::match(const SiftDetector sd_scene, Mat &img_scene) {
 
 	if (!working || !sd_scene.isWorking())
 		return;
 
 	std::vector< DMatch > matches;
-	FlannBasedMatcher matcher;
+	BFMatcher matcher;
 
+	logg::reset_clock();
 	matcher.match(descriptors, sd_scene.descriptors, matches);
+	logg::write_clock("match()");
 
 	double max_dist = 0, min_dist = 100;
 
@@ -90,10 +96,13 @@ void SiftDetector::match(const SiftDetector &sd_scene, Mat &img_scene) {
 	std::vector< DMatch > good_matches;
 
 	for (int i = 0; i < descriptors.rows; i++) {
-		if (matches[i].distance < 3 * min_dist)
+		if (matches[i].distance < 3 * min_dist) 
 			good_matches.push_back(matches[i]);
 	}
 
+	logg::clck << "good_matches.size() " << name << " " << good_matches.size() << endl;
+
+	// less then 9 will cause false alarms
 	if (good_matches.size() < 9)
 		return;
 
@@ -107,8 +116,10 @@ void SiftDetector::match(const SiftDetector &sd_scene, Mat &img_scene) {
 	}
 
 	try {
-
+		logg::reset_clock();
 		Mat H = findHomography(obj_points, scn_points, CV_RANSAC);
+		logg::write_clock("findHomography()");
+
 		std::vector<Point2f> scn_corners(4);
 
 		perspectiveTransform(obj_corners, scn_corners, H);

@@ -3,7 +3,7 @@
 
 /*members of logg*/
 
-std::ofstream logg::clck;
+std::ofstream logg::clck("clock.log", std::ofstream::app);
 std::ofstream logg::err;
 
 time_t logg::start = clock();
@@ -12,11 +12,11 @@ std::ofstream logg::fout("logo_" + get_session_id() + ".log", std::ofstream::app
 Tee logg::tee(std::cout, fout);
 TeeStream logg::tout(tee);
 
-inline void logg::reset_clock() {
+void logg::reset_clock() {
 	start = clock();
 }
 
-inline void logg::write_clock(const std::string &name) {
+void logg::write_clock(const std::string name) {
 	logg::clck << name << " took " << clock() - logg::start << std::endl;
 	start = clock();
 }

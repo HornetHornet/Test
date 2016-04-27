@@ -1,9 +1,16 @@
 #include "stdafx.h"
 
+#include <thread>
+
 #include "Detectors.h"
 #include "GetFiles.h"
 #include "GeneralTransforms.h"
-#include <thread>
+
+#define OBJ_MIN_HESS 350
+#define SCN_MIN_HESS 700
+#define OBJ_SIZE 256
+#define SCN_SIZE 780
+
 
 inline double tick(double t) {
 	double passed = ((double)getTickCount() - t) / getTickFrequency();	
@@ -58,13 +65,13 @@ int main(int argc, char ** argv) {
 		for each (path obj_path in obj_paths) {
 			Mat obj_img;
 			if (openImage(obj_path, obj_img)) {
-				detectors.push_back(SiftDetector(obj_path.filename().string()));
-				trnsf::resizeDown(obj_img, 256);
+				detectors.push_back(SiftDetector(obj_path.filename().string(), OBJ_MIN_HESS));
+				trnsf::resizeDown(obj_img, OBJ_SIZE);
 				images.push_back(obj_img);
 			}
 		}
 
-		list<SiftDetector>::iterator obj = detectors.begin();
+		auto obj = detectors.begin();
 		for (size_t i = 0; i < images.size(); i++) {
 			threads.push_back(thread(&SiftDetector::process, &(*obj), images[i]));
 			obj++;
@@ -80,10 +87,10 @@ int main(int argc, char ** argv) {
 		cout << endl << endl;
 	}
 
-	list<SiftDetector>::iterator it = detectors.begin();
+	auto it = detectors.begin();
 	while (it != detectors.end())	{
 		if (!it->isWorking()) {
-			logg::tout << " ! can't work with " << it->getName() << endl;
+			logg::tout << " ! failed to find more than 60 points on " << it->getName() << ", won't find it"<< endl;
 			it = detectors.erase(it);
 		}
 		else it++;
@@ -103,15 +110,14 @@ int main(int argc, char ** argv) {
 		logg::tout << endl << endl << "time passed: " << tick(t) << " seconds"
 			<< endl << "scene: " << ++scn_proc << "/ " << scn_paths.size() << " " << endl;
 			
-
 		Mat img_scene;
 
 		if (!openImage(scn_path, img_scene))
 			continue;
 
-		trnsf::preciseResize(img_scene, 780);
+		trnsf::preciseResize(img_scene, SCN_SIZE);
 
-		SiftDetector sd_scene("scn_" + scn_path.filename().string());
+		SiftDetector sd_scene("scn_" + scn_path.filename().string(), SCN_MIN_HESS);
 		sd_scene.process(img_scene.clone());
 
 		if (!sd_scene.isWorking())
@@ -122,7 +128,7 @@ int main(int argc, char ** argv) {
 
 		cout << endl;
 
-		for (list<SiftDetector>::iterator it = detectors.begin(); it != detectors.end(); it++)
+		for (auto it = detectors.begin(); it != detectors.end(); it++)
 			if (it->isWorking())
 				threads.push_back(thread(&SiftDetector::match, &(*it), sd_scene, img_scene));
 

@@ -25,8 +25,8 @@ public:
 	static Tee logg::tee;
 	static TeeStream logg::tout;
 
-	static inline void reset_clock();
-	static inline void write_clock(const std::string &name);
+	static void reset_clock();
+	static void write_clock(const std::string name);
 	static std::string get_session_id();
 };
 

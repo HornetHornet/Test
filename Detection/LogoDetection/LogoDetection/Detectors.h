@@ -24,14 +24,19 @@ public:
 
 class SiftDetector : public Detector {
 
+	int minHessian;
+
 	std::vector<Point2f> obj_corners;
 	std::vector<KeyPoint> keypoints;
 	Mat descriptors;
 
+	void workWithMatches(vector< DMatch > &matches, Mat &img_scene);
+
 public:
-	SiftDetector(String n);
+	SiftDetector(String n, int MinHess);
+
 	void process(Mat &image);
-	void match(const SiftDetector &sd_scene, Mat &img_scene);
+	void match(const SiftDetector sd_scene, Mat &img_scene);
 
 	static int SiftDetector::detections;
 };
