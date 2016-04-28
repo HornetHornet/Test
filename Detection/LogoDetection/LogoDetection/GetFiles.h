@@ -32,7 +32,7 @@ bool checkExtention(const path &filePath, const std::vector<string> &extentions)
 
 // if given directory return list of paths to files of requested type
 // if given path to a file returns it if the file's type is the one that was requested
-std::vector<path> getFiles(const path &thePath, fileTypes types) {
+std::vector<path> getFiles(const path &thePath, fileTypes types, bool recusively = false) {
 
 	std::vector<path> listOfFiles;
 
@@ -64,10 +64,19 @@ std::vector<path> getFiles(const path &thePath, fileTypes types) {
 			listOfFiles.push_back(thePath);
 	}
 	else {
-		for (auto& entry : boost::make_iterator_range(directory_iterator(thePath))) {
-			path entryPath = entry.path();
-			if (checkExtention(entryPath, extentions)) 
-				listOfFiles.push_back(entryPath);
+		if (recusively) {
+			for (auto& entry : boost::make_iterator_range(recursive_directory_iterator(thePath))) {
+				path entryPath = entry.path();
+				if (checkExtention(entryPath, extentions))
+					listOfFiles.push_back(entryPath);
+			}
+		}
+		else {
+			for (auto& entry : boost::make_iterator_range(directory_iterator(thePath))) {
+				path entryPath = entry.path();
+				if (checkExtention(entryPath, extentions))
+					listOfFiles.push_back(entryPath);
+			}
 		}
 	}
 		

@@ -11,7 +11,7 @@ using namespace cv;
 namespace geom
 {
 
-	// angle between ab and bc
+	// angle between segments ab and bc
 	inline int getAngle(Point2f a, Point2f b, Point2f c)
 	{
 		Point2f ab = b - a;
@@ -53,7 +53,6 @@ namespace geom
 			 && ((a.x - c.x)*(d.y - c.y) - (a.y - c.y)*(d.x - c.x))
 			  * ((b.x - c.x)*(d.y - c.y) - (b.y - c.y)*(d.x - c.x)) < 0);
 	}
-
 
 	// returns true if quadrangle is resembling a rectangle
 	inline bool checkQuadrangle(vector<Point2f> &quad) {
@@ -113,6 +112,41 @@ namespace geom
 		c.y /= 3 * a;
 
 		return c;
+	};
+
+	class Quadrangle {
+		// coefficients of a line equations for each edge
+		float a[4], b[4], c[4]; 
+		Point2f cent; // a centroid
+
+		// returns distance from point p to i-th edge
+		float distToLine(Point2f p, int i) {
+			return a[i] * p.x + b[i] * p.y + c[i];
+		}
+
+	public:
+		// calculate coefficients and a centroid
+		Quadrangle(vector<Point2f> quad) {
+
+			quad.push_back(quad[0]);
+
+			for (size_t i = 0; i < 4; i++) {
+				a[i] = -(quad[i + 1].y - quad[i].y);
+				b[i] = quad[i + 1].x - quad[i].x;
+				c[i] = -(a[i] * quad[i].x + b[i] * quad[i].y);
+			}
+
+			cent = centroid(quad);
+		}
+
+		// returns true if the point is inside of a quadrangle
+		bool surrounds(const Point2f point) {
+			// for each edge check whether the point and a centroid are on the same side
+			for (size_t i = 0; i < 4; i++) 
+				if (copysignf(1.0, distToLine(point, i)) != copysignf(1.0, distToLine(cent, i)))
+					return false;
+			return true;
+		}
 	};
 }
 

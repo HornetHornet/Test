@@ -20,6 +20,10 @@ inline bool openImage(const path &imagePath, Mat &image) {
 	image = imread(imagePath.string(), CV_LOAD_IMAGE_UNCHANGED);
 	if (image.data) {
 		cout << "opened: " << imagePath.filename().string() << endl;
+
+		if (image.channels() == 4)
+			trnsf::makeOpaque(image);
+
 		return true;
 	}
 	logg::tout << "ERROR: failed to open " << imagePath << endl;
@@ -35,7 +39,7 @@ int main(int argc, char ** argv) {
 
 	cout << endl;
 
-	std::vector<path> scn_paths = getFiles(argv[1], IMAGES);
+	std::vector<path> scn_paths = getFiles(argv[1], IMAGES, true);
 	std::vector<path> obj_paths = getFiles(argv[2], IMAGES);
 	
 	cout << endl;
@@ -84,12 +88,13 @@ int main(int argc, char ** argv) {
 
 	auto it = detectors.begin();
 	while (it != detectors.end())	{
-		if (!it->isWorking()) {
+		if (it->isWorking()) 
+			it++;
+		else {
 			logg::tout << " ! failed to find " << MIN_POINTS 
 				<< " points on " << it->getName() << ", won't search for it"<< endl;
 			it = detectors.erase(it);
 		}
-		else it++;
 	}
 
 	if (distance(detectors.begin(), detectors.end()) == 0) {

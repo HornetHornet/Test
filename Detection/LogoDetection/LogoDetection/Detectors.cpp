@@ -39,10 +39,9 @@ void SiftDetector::process(Mat &image) {
 	obj_corners[2] = cvPoint(image.cols, image.rows);
 	obj_corners[3] = cvPoint(0, image.rows);
 	
-	if (image.channels() == 4)
-		trnsf::makeOpaque(image);
-
 	cvtColor(image, image, CV_BGR2GRAY);
+
+	// SiftFeatureDetector have an option of contrast threshold but this worked out better
 	image.convertTo(image, -1, 1.5, 0);
 
 	try {
@@ -69,14 +68,13 @@ void SiftDetector::process(Mat &image) {
 };
 
 // find matches in two precalculated sets of keypoints and descriptors
-void SiftDetector::match(const SiftDetector sd_scene, Mat &img_scene) {
+void SiftDetector::match(const SiftDetector sd_scene, Mat &img_scene) const {
 
 	if (!working || !sd_scene.isWorking())
 		return;
 
 	std::vector< DMatch > matches;
 	BFMatcher matcher;
-
 	matcher.match(descriptors, sd_scene.descriptors, matches);
 
 	double max_dist = 0, min_dist = 100;
@@ -128,23 +126,19 @@ void SiftDetector::match(const SiftDetector sd_scene, Mat &img_scene) {
 			line(img_scene, scn_corners[i], scn_corners[(i + 1) % 4], Scalar(0, 255, 0), 3);
 
 		putText(img_scene, to_upper_copy<std::string>(name),
-			Point(scn_corners[0].x + 10, scn_corners[0].y + 20), FONT_HERSHEY_DUPLEX, 0.5,
+			geom::centroid(scn_corners) - Point2f(30,0), FONT_HERSHEY_DUPLEX, 0.5,
 			Scalar(255, 255, 255), 1, 1, 0);
 
 		putText(img_scene, to_upper_copy<std::string>(name),
-			Point(scn_corners[0].x + 10, scn_corners[0].y + 35), FONT_HERSHEY_DUPLEX, 0.5,
+			geom::centroid(scn_corners) - Point2f(30, 15), FONT_HERSHEY_DUPLEX, 0.5,
 			Scalar(0, 0, 0), 1, 1, 0);
 
 		// remember points of the found object
 
-		Point2f cent = geom::centroid(scn_corners);
-		double maxDist = norm(cent - scn_corners[0]);
-
-		for (size_t i = 1; i < scn_corners.size(); i++)
-			maxDist = max(maxDist, norm(cent - scn_corners[i]));
+		geom::Quadrangle quad(scn_corners);
 
 		for (int i = 0; i < good_matches.size(); i++) {
-			if (norm(cent - sd_scene.keypoints[good_matches[i].trainIdx].pt) <= maxDist)
+			if (quad.surrounds(sd_scene.keypoints[good_matches[i].trainIdx].pt))
 				used_matches.insert(i);
 		}
 	}
