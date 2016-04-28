@@ -50,9 +50,6 @@ void SiftDetector::process(Mat &image) {
 		SiftFeatureDetector detector(minHessian, 3);
 		detector.detect(image, keypoints);
 
-		logg::clck << "keypoints.size()" << name << " " << keypoints.size() << endl;
-
-		// 60 is empirical, with that little points object would not be found anyway
 		if (keypoints.size() < MIN_POINTS)
 			return;
 
@@ -96,7 +93,6 @@ void SiftDetector::match(const SiftDetector sd_scene, Mat &img_scene) {
 			good_matches.push_back(matches[i]);
 	}
 
-	// less then 9 will cause false alarms
 	if (good_matches.size() < MIN_MATCHES)
 		return;
 
@@ -121,7 +117,7 @@ void SiftDetector::match(const SiftDetector sd_scene, Mat &img_scene) {
 		std::vector<Point2f> scn_corners(4);
 		perspectiveTransform(obj_corners, scn_corners, H);
 
-		// check if the result looks realistic
+		// check whether result looks realistic
 		if (!geom::checkQuadrangle(scn_corners))
 			return;
 

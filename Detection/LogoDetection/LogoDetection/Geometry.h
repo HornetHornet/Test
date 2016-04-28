@@ -95,7 +95,7 @@ namespace geom
 		return minEdge > 15 && (maxEdge / minEdge < 20);
 	}
 
-	// returns centroid of a poligon p
+	// returns centroid of a poligon
 	Point2f centroid( vector<Point2f> poligon) {
 		Point2f c(0, 0);
 		float a = 0;

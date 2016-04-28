@@ -6,8 +6,9 @@
 #include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/nonfree/nonfree.hpp"
 
-#define MIN_POINTS 60
-#define MIN_MATCHES 9
+#define MIN_POINTS 60 	// empirical, with less than that points object would not be found anyway
+#define MIN_MATCHES 9   // less then this matcing points will cause false alarms
+
 
 #ifndef DETECTORS_H
 #define DETECTORS_H

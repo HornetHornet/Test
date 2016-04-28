@@ -3,7 +3,8 @@
 
 /*members of logg*/
 
-std::ofstream logg::clck("clock.log", std::ofstream::app);
+//std::ofstream logg::clck("clock.log", std::ofstream::app);
+std::ofstream logg::clck;
 std::ofstream logg::err;
 
 time_t logg::start = clock();
