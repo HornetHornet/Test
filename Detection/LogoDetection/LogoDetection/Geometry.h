@@ -114,19 +114,6 @@ namespace geom
 
 		return c;
 	};
-
-	// returns true if point is inside a circle, circumscribing a poligon
-	bool isAround(const Point2f point, const vector<Point2f> &poligon) {
-
-		Point2f c = centroid(poligon);
-
-		double maxDist = norm(c - poligon[0]);
-
-		for (size_t i = 1; i < poligon.size(); i++)
-			maxDist = max(maxDist, norm(c - poligon[i]));
-
-		return norm(point - c) <= maxDist;
-	}
 }
 
 

@@ -4,7 +4,6 @@
 
 #include <unordered_set>
 
-
 /*members of Detector */
 
 Detector::Detector()
@@ -140,9 +139,16 @@ void SiftDetector::match(const SiftDetector sd_scene, Mat &img_scene) {
 			Point(scn_corners[0].x + 10, scn_corners[0].y + 35), FONT_HERSHEY_DUPLEX, 0.5,
 			Scalar(0, 0, 0), 1, 1, 0);
 
-		// remember ids of used good_matches
+		// remember points of the found object
+
+		Point2f cent = geom::centroid(scn_corners);
+		double maxDist = norm(cent - scn_corners[0]);
+
+		for (size_t i = 1; i < scn_corners.size(); i++)
+			maxDist = max(maxDist, norm(cent - scn_corners[i]));
+
 		for (int i = 0; i < good_matches.size(); i++) {
-			if (geom::isAround(sd_scene.keypoints[good_matches[i].trainIdx].pt, scn_corners))
+			if (norm(cent - sd_scene.keypoints[good_matches[i].trainIdx].pt) <= maxDist)
 				used_matches.insert(i);
 		}
 	}
