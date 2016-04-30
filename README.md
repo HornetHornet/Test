@@ -20,13 +20,18 @@
 
 Если у вас уже есть библиотеки [**Opencv 2.4.12**](http://opencv.org/downloads.html) и [**Boost 1.59**](http://boost.teeks99.com) , подключите их.
 
-В меню Project > Property Pages > C\C++ > General > Aditional Dependencies укажите пути к библиотекам, которые могут выглядеть так "C:\Libraries\boost_1_59_0; C:\Libraries\opencv 2.4\opencv\build\include"
+Укажите пути к библиотекам
+> 1. "C:\Libraries\boost_1_59_0; C:\Libraries\opencv 2.4\opencv\build\include"
+> 2. "C:\Libraries\boost_1_59_0\lib64-msvc-12.0; C:\Libraries\opencv 2.4\opencv\build\x64\vc12\lib"
 
-В меню Project > Property Pages > Linker > Aditional Library Directories : 
-"C:\Libraries\boost_1_59_0\lib64-msvc-12.0; C:\Libraries\opencv 2.4\opencv\build\x64\vc12\lib"
+соотвественно в
+> 1. Project > Property Pages > C\C++ > General > Aditional Dependencies
+> 2. Project > Property Pages > Linker > Aditional Library Directories
 
 В случае, если opencv был построен с созданием opencv_world....lib, его укажите его вместо библиотек в 
-Project > Property Pages > Linker > Input > Additional Dependencies и поместить в папку с .exe файлом соответсвующие **.dll**, иначе папка с .exe должна содержать :
+> Project > Property Pages > Linker > Input > Additional Dependencies 
+
+и поместить в папку с .exe файлом соответсвующие **.dll**, иначе папка с .exe должна содержать :
 
 * opencv_highgui2412d.dll 
 * opencv_core2412d.dll 
@@ -39,13 +44,14 @@ Project > Property Pages > Linker > Input > Additional Dependencies и поме�
 * opencv_objdetect2412d.dll 
 * opencv_ocl2412d.dll 
 
-Если используемые вами библиотеки были собраны не под **x64** и не с использованием **Visual Studio 2013 (v120)**, укажите это в настройках проекта. В Build > Configuration Manager > Active Solution Platform 
-и в Project > Property Pages > Configuration Properties > Platform Toolset соответственно. 
+Если используемые вами библиотеки были собраны не под **x64** и не с использованием **Visual Studio 2013 (v120)**, укажите это в настройках проекта:
 
-Однако, я не могу гарантировать работоспособность проекта с версиями библиотек, отличными от тех, что использовал сам (а начиная с Opencv 3.0 работать точно не будет) 
-и которые можно скачать **здесь** [Boost 1.59 x64 v120](http://boost.teeks99.com)
+> 1. Build > Configuration Manager > Active Solution Platform
+> 2. Project > Property Pages > Configuration Properties > Platform Toolset 
 
-и **здесь** [Opencv 2.4.12](http://opencv.org/downloads.html)
+Однако, я не могу гарантировать работоспособность проекта с версиями библиотек, отличными от тех, что использовал сам (а начиная с Opencv 3.0 работать точно не будет), которые можно скачать 
+* **здесь** [Boost 1.59 x64 v120](http://boost.teeks99.com)
+* и **здесь** [Opencv 2.4.12](http://opencv.org/downloads.html)
 
 Они **prebuild**, просто скачайте и распакуйте, при желании - укажите системные переменные. 
 
