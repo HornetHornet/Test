@@ -31,7 +31,7 @@
 В случае, если opencv был построен с созданием opencv_world....lib, его укажите его вместо библиотек в 
 > Project > Property Pages > Linker > Input > Additional Dependencies 
 
-и поместить в папку с .exe файлом соответсвующие **.dll**, иначе папка с .exe должна содержать :
+и поместите в папку с .exe файлом соответсвующие **.dll**, иначе эта папка должна содержать :
 
 * opencv_highgui2412d.dll 
 * opencv_core2412d.dll 
