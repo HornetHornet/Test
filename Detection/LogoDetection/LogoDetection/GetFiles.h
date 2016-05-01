@@ -30,7 +30,7 @@ bool checkExtention(const path &filePath, const std::vector<string> &extentions)
 	return false;
 }
 
-// if given directory return list of paths to files of requested type
+// if given directory returns list of paths to files of requested type
 // if given path to a file returns it if the file's type is the one that was requested
 std::vector<path> getFiles(const path &thePath, fileTypes types, bool recusively = false) {
 

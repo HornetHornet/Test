@@ -1,5 +1,6 @@
 "LogoDetection\x64\Debug\LogoDetection.exe"^
- "C:\Test\DataSet_pic"^
- "C:\Test\DataSet_pic\reference"
+ --scenes_path="C:\Test\DataSet_pic"^
+ --objects_path="C:\Test\DataSet_pic\reference"^
+ --recursive="false"
  
 pause

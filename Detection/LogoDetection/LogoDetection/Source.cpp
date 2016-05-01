@@ -17,41 +17,51 @@ inline double tick(double t) {
 }
 
 inline bool openImage(const path &imagePath, Mat &image) {
+
 	image = imread(imagePath.string(), CV_LOAD_IMAGE_UNCHANGED);
+
 	if (image.data) {
 		cout << "opened: " << imagePath.filename().string() << endl;
 
 		if (image.channels() == 4)
 			trnsf::makeOpaque(image);
 
+		switch (image.type()) {
+		case(CV_8UC3) : 
+			break;
+		case(CV_16UC3) : 
+			image.convertTo(image, CV_8UC3, 1.0 / 256); break;
+		default: 
+			image.convertTo(image, CV_8UC3); break;
+		}
+
 		return true;
 	}
+
 	logg::tout << "ERROR: failed to open " << imagePath << endl;
+
 	return false;
 }
 
+
 int main(int argc, char ** argv) {
 	
-	if (argc < 3) {
-		cout << "ERROR: not enough arguments" << endl;
+	char* keys = 
+		"{ o| objects_path |       | path to images with object}"
+		"{ s| scenes_path  |       | path to images with scenes}"
+		"{ r| recursive    | false | whether to search for images recursivly}";
+
+	CommandLineParser parser(argc, argv, keys);
+	parser.printParams();
+
+	cout << endl;
+	std::vector<path> obj_paths = getFiles(parser.get<string>("o"), IMAGES, parser.get<bool>("r"));
+	std::vector<path> scn_paths = getFiles(parser.get<string>("s"), IMAGES, parser.get<bool>("r"));
+	cout << endl;
+
+	if (obj_paths.size() == 0 || scn_paths.size() == 0) {
+		cout << "ERROR: found " << obj_paths.size() << " objects and " << scn_paths.size() << " scenes" << endl;
 		return 1;
-	}
-
-	cout << endl;
-
-	std::vector<path> scn_paths = getFiles(argv[1], IMAGES, true);
-	std::vector<path> obj_paths = getFiles(argv[2], IMAGES);
-	
-	cout << endl;
-
-	if (scn_paths.size() == 0) {
-		cout << "ERROR: no scenes" << endl;
-		return 2;
-	}
-
-	if (obj_paths.size() == 0)  {
-		cout << "ERROR: no objects" << endl;
-		return 3;
 	}
 
 	list<SiftDetector> detectors;
@@ -83,7 +93,7 @@ int main(int argc, char ** argv) {
 			cout << '\r' << "processed " << i + 1 << "/ " << threads.size() << " objects";
 		}
 
-		cout << endl << endl;
+		cout << endl;
 	}
 
 	auto it = detectors.begin();
@@ -91,21 +101,21 @@ int main(int argc, char ** argv) {
 		if (it->isWorking()) 
 			it++;
 		else {
-			logg::tout << " ! failed to find " << MIN_POINTS 
-				<< " points on " << it->getName() << ", won't search for it"<< endl;
+			logg::tout << " ! failed to find at least " << MIN_POINTS << " points on " 
+				<< it->getName() << ", won't search for it"<< endl;
 			it = detectors.erase(it);
 		}
 	}
 
 	if (distance(detectors.begin(), detectors.end()) == 0) {
 		logg::tout << "ERROR: no working detectors" << endl;
-		return 4;
+		return 2;
 	}
 
-	string session_id = logg::get_session_id();
-	create_directory(path("results_" + session_id));
-
 	int scn_proc = 0;
+	string session_id = logg::get_session_id();
+
+	create_directory(path("results_" + session_id));
 
 	for each (path scn_path in scn_paths) {
 
@@ -125,10 +135,10 @@ int main(int argc, char ** argv) {
 		if (!sd_scene.isWorking())
 			continue;
 
-		int obj_proc = 0;
-		vector<thread> threads;
 
 		cout << endl;
+
+		vector<thread> threads;
 
 		for (auto it = detectors.begin(); it != detectors.end(); it++) {
 			if (it->isWorking())
@@ -143,7 +153,7 @@ int main(int argc, char ** argv) {
 
 	logg::tout << endl << "DONE" << endl
 		<< "total time: " << tick(t) << " seconds" << endl
-		<< "detections:  " << SiftDetector::detections << endl;
+		<< "detections: " << SiftDetector::detections << endl;
 
 	cv::waitKey();
 

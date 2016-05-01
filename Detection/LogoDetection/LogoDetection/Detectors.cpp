@@ -34,6 +34,7 @@ void SiftDetector::process(Mat &image) {
 		return;
 	
 	obj_corners.resize(4);
+
 	obj_corners[0] = cvPoint(0, 0);
 	obj_corners[1] = cvPoint(image.cols, 0);
 	obj_corners[2] = cvPoint(image.cols, image.rows);
@@ -44,27 +45,17 @@ void SiftDetector::process(Mat &image) {
 	// SiftFeatureDetector have an option of contrast threshold but this worked out better
 	image.convertTo(image, -1, 1.5, 0);
 
-	try {
+	SiftFeatureDetector detector(minHessian, 3);
+	detector.detect(image, keypoints);
 
-		SiftFeatureDetector detector(minHessian, 3);
-		detector.detect(image, keypoints);
+	if (keypoints.size() < MIN_POINTS)
+		return;
+ 
+	SiftDescriptorExtractor extractor;
+	extractor.compute(image, keypoints, descriptors);
 
-		if (keypoints.size() < MIN_POINTS)
-			return;
+	working = true;
 
-		SiftDescriptorExtractor extractor;
-		extractor.compute(image, keypoints, descriptors);
-
-		working = true;
-	}
-	catch (Exception e) {
-		logg::err.open("errlog.log", std::ofstream::app);
-		logg::err
-			<< "process()" << endl
-			<< name << endl 
-			<< e.msg << endl 
-			<< "img type: " << image.type() << endl;
-	}
 };
 
 // find matches in two precalculated sets of keypoints and descriptors
@@ -78,7 +69,6 @@ void SiftDetector::match(const SiftDetector sd_scene, Mat &img_scene) const {
 	matcher.match(descriptors, sd_scene.descriptors, matches);
 
 	double max_dist = 0, min_dist = 100;
-
 	for (int i = 0; i < descriptors.rows; i++) {
 		double dist = matches[i].distance;
 		if (dist < min_dist) min_dist = dist;
