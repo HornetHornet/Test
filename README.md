@@ -18,7 +18,7 @@
 
 Чтобы собрать проект, откройте **.sln** файл в **VS 2013-15**
 
-Если у вас уже есть библиотеки [**Opencv 2.4.12**](http://opencv.org/downloads.html) и [**Boost 1.59**](http://boost.teeks99.com) , подключите их.
+Если у вас уже есть библиотеки [**Opencv 2.4.12**](http://opencv.org/downloads.html) и [**Boost 1.59**](https://sourceforge.net/projects/boost/files/boost-binaries/1.59.0/) , подключите их.
 
 Укажите пути к библиотекам
 > 1. "C:\Libraries\boost_1_59_0; C:\Libraries\opencv 2.4\opencv\build\include"
@@ -49,7 +49,7 @@
 > 1. Build > Configuration Manager > Active Solution Platform
 > 2. Project > Property Pages > Configuration Properties > Platform Toolset 
 
-Однако, я не могу гарантировать работоспособность проекта с версиями библиотек, отличными от тех, что использовал сам ([Opencv 2.4.12](http://opencv.org/downloads.html) и [Boost 1.59 x64 v120](http://boost.teeks99.com)), а начиная с Opencv 3.0 работать точно не будет.
+Однако, я не могу гарантировать работоспособность проекта с версиями библиотек, отличными от тех, что использовал сам ([Opencv 2.4.12](http://opencv.org/downloads.html) и [Boost 1.59 x64 v120](https://sourceforge.net/projects/boost/files/boost-binaries/1.59.0/)), а начиная с Opencv 3.0 работать точно не будет.
 
 Они **prebuild**, просто скачайте и распакуйте, при желании - укажите системные переменные. 
 
