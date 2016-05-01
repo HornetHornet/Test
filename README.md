@@ -28,7 +28,7 @@
 > 1. Project > Property Pages > C\C++ > General > Aditional Dependencies
 > 2. Project > Property Pages > Linker > Aditional Library Directories
 
-В случае, если opencv был построен с созданием opencv_world....lib, его укажите его вместо библиотек в 
+В случае, если opencv был построен с созданием opencv_world....lib, укажите его вместо библиотек в 
 > Project > Property Pages > Linker > Input > Additional Dependencies 
 
 и поместите в папку с .exe файлом соответсвующие **.dll**, иначе эта папка должна содержать :
