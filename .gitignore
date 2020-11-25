@@ -24,3 +24,5 @@ Debug
 \.idea/
 
 Detection/cmake-build-debug/
+
+src/cmake-build-debug/

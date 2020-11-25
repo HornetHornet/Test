@@ -46,7 +46,7 @@ int main(int argc, char ** argv) {
 	
 	char* keys = 
 		"{ o| objects |       | path to images with object}"
-		"{ s| scenes |       | path to images with scenes}"
+		"{ s| data |       | path to images with data}"
 		"{ r| recursive    | false | whether to search for images recursivly}";
 
 	cv::CommandLineParser parser(argc, argv, keys);
@@ -58,7 +58,7 @@ int main(int argc, char ** argv) {
 	std::cout << std::endl;
 
 	if (obj_paths.size() == 0 || scn_paths.size() == 0) {
-		std::cout << "ERROR: found " << obj_paths.size() << " objects and " << scn_paths.size() << " scenes" << std::endl;
+		std::cout << "ERROR: found " << obj_paths.size() << " objects and " << scn_paths.size() << " data" << std::endl;
 		return 1;
 	}
 
@@ -141,7 +141,7 @@ int main(int argc, char ** argv) {
 	int scn_proc = 0;
 	std::string session_id = logg::get_session_id();
 
-	create_directory(path("results_" + session_id));
+	create_directory(path("results/" + session_id));
 
 	for (const auto & scn_path : scn_paths) {
 

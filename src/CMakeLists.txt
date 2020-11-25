@@ -14,14 +14,14 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 add_executable(
 		label-detection
-		LogoDetection/LogoDetection/Source.cpp
-		LogoDetection/LogoDetection/Logger.h
-		LogoDetection/LogoDetection/Logger.cpp
-		LogoDetection/LogoDetection/GetFiles.h
-		LogoDetection/LogoDetection/Geometry.h
-		LogoDetection/LogoDetection/GeneralTransforms.h
-		LogoDetection/LogoDetection/Detectors.h
-		LogoDetection/LogoDetection/Detectors.cpp
+		Source.cpp
+		Logger.h
+		Logger.cpp
+		GetFiles.h
+		Geometry.h
+		GeneralTransforms.h
+		Detectors.h
+		Detectors.cpp
 )
 
 target_link_libraries(

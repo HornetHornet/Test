@@ -40,10 +40,10 @@ void pretty_put_line(const cv::Mat & image, std::string line, const cv::Point & 
 	double font_scale = 1;
 
 	int thickness = 3;
-	cv::putText(image, line, pos, font_id, font_scale, {0, 0, 0, 0}, thickness);
+	cv::putText(image, line, pos, font_id, font_scale, {0, 0, 0, 0}, 3);
 
 	thickness = 1;
-	cv::putText(image, line, pos, font_id, font_scale, {255, 255, 125}, thickness);
+	cv::putText(image, line, pos, font_id, font_scale, {255, 255, 125}, 1);
 }
 
 // check, convert to grayscale, calculate keypoints and descriptors
@@ -148,6 +148,7 @@ void SiftDetector::match(const SiftDetector sd_scene, const cv::Mat &img_scene) 
 		}
 
 //		SiftDetector::detections++;
+
 
 		for (auto & p : scn_corners){
 			p.x = std::max<float>(p.x, 0);
