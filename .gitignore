@@ -21,3 +21,6 @@
 *.xml
 .vs
 Debug
+\.idea/
+
+Detection/cmake-build-debug/
