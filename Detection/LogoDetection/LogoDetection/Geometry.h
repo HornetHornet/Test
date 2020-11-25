@@ -6,16 +6,15 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
-using namespace cv;
 
 namespace geom
 {
 
 	// angle between segments ab and bc
-	inline int getAngle(Point2f a, Point2f b, Point2f c)
+	inline int getAngle(const cv::Point2f & a, const cv::Point2f & b, const cv::Point2f & c)
 	{
-		Point2f ab = b - a;
-		Point2f cb = b - c;
+		cv::Point2f ab = b - a;
+		cv::Point2f cb = b - c;
 
 		float dotProd = ab.x * cb.x + ab.y * cb.y;
 		float abLenSqr = ab.x * ab.x + ab.y * ab.y;
@@ -46,7 +45,7 @@ namespace geom
 	}
 
 	// returns true if segments AB and CD intersect each other
-	inline bool intersect(Point2f a, Point2f b, Point2f c, Point2f d) {
+	inline bool intersect(cv::Point2f a, cv::Point2f b, cv::Point2f c, cv::Point2f d) {
 
 		return (((c.x - a.x)*(b.y - a.y) - (c.y - a.y)*(b.x - a.x))
 			  * ((d.x - a.x)*(b.y - a.y) - (d.y - a.y)*(b.x - a.x)) < 0
@@ -55,7 +54,7 @@ namespace geom
 	}
 
 	// returns true if quadrangle is resembling a rectangle
-	inline bool checkQuadrangle(vector<Point2f> &quad) {
+	inline bool checkQuadrangle(std::vector<cv::Point2f> &quad) {
 
 		if (!intersect(quad[0], quad[2], quad[1], quad[3]))
 			return false;
@@ -68,8 +67,8 @@ namespace geom
 
 		for (size_t i = 0; i < 4; i++) {
 			int ang = abs(getAngle(quad[i], quad[(i + 1) % 4], quad[(i + 2) % 4]));
-			minAng = min(minAng, ang);
-			maxAng = max(maxAng, ang);
+			minAng = std::min(minAng, ang);
+			maxAng = std::max(maxAng, ang);
 		}
 
 		if (minAng < 20 || maxAng < 70)
@@ -87,16 +86,16 @@ namespace geom
 
 		for (int i = 1; i < 4; i++) {
 			double Edge = norm(quad[i] - quad[(i + 1) % 4]);
-			minEdge = min(minEdge, Edge);
-			maxEdge = max(maxEdge, Edge);
+			minEdge = std::min(minEdge, Edge);
+			maxEdge = std::max(maxEdge, Edge);
 		}
 
 		return minEdge > 15 && (maxEdge / minEdge < 20);
 	}
 
 	// returns centroid of a poligon
-	Point2f centroid( vector<Point2f> poligon) {
-		Point2f c(0, 0);
+	cv::Point2f centroid(std::vector<cv::Point2f> poligon) {
+		cv::Point2f c(0, 0);
 		float a = 0;
 
 		poligon.push_back(poligon[0]);
@@ -117,16 +116,16 @@ namespace geom
 	class Quadrangle {
 		// coefficients of a line equations for each edge
 		float a[4], b[4], c[4]; 
-		Point2f cent; // a centroid
+		cv::Point2f cent; // a centroid
 
 		// returns distance from point p to i-th edge
-		float distToLine(Point2f p, int i) {
+		float distToLine(cv::Point2f p, int i) {
 			return a[i] * p.x + b[i] * p.y + c[i];
 		}
 
 	public:
 		// calculate coefficients and a centroid
-		Quadrangle(vector<Point2f> quad) {
+		Quadrangle(std::vector<cv::Point2f> quad) {
 
 			quad.push_back(quad[0]);
 
@@ -140,7 +139,7 @@ namespace geom
 		}
 
 		// returns true if the point is inside of a quadrangle
-		bool surrounds(const Point2f point) {
+		bool surrounds(const cv::Point2f point) {
 			// for each edge check whether the point and a centroid are on the same side
 			for (size_t i = 0; i < 4; i++) 
 				if (copysignf(1.0, distToLine(point, i)) != copysignf(1.0, distToLine(cent, i)))

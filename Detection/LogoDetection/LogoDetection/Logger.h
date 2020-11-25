@@ -8,6 +8,7 @@
 #include <fstream>
 #include <chrono>
 #include <sstream>
+//#include "Logger.h"
 
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/tee.hpp>
@@ -18,12 +19,12 @@ typedef boost::iostreams::stream<Tee> TeeStream;
 class logg {
 	static time_t start;
 public:
-	static std::ofstream logg::clck;
-	static std::ofstream logg::err;
-	static std::ofstream logg::fout;
+	static std::ofstream clck;
+	static std::ofstream err;
+	static std::ofstream fout;
 
-	static Tee logg::tee;
-	static TeeStream logg::tout;
+	static Tee tee;
+	static TeeStream tout;
 
 	static void reset_clock();
 	static void write_clock(const std::string name);

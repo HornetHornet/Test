@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include <thread>
 
 #include "Detectors.h"
@@ -13,15 +11,15 @@
 #define SCN_SIZE 780
 
 inline double tick(double t) {
-	return ((double)getTickCount() - t) / getTickFrequency();
+	return ((double)cv::getTickCount() - t) / cv::getTickFrequency();
 }
 
-inline bool openImage(const path &imagePath, Mat &image) {
+inline bool openImage(const path &imagePath, cv::Mat &image) {
 
-	image = imread(imagePath.string(), CV_LOAD_IMAGE_UNCHANGED);
+	image = cv::imread(imagePath.string(), cv::IMREAD_UNCHANGED);
 
 	if (image.data) {
-		cout << "opened: " << imagePath.filename().string() << endl;
+		std::cout << "opened: " << imagePath.filename().string() << std::endl;
 
 		if (image.channels() == 4)
 			trnsf::makeOpaque(image);
@@ -38,7 +36,7 @@ inline bool openImage(const path &imagePath, Mat &image) {
 		return true;
 	}
 
-	logg::tout << "ERROR: failed to open " << imagePath << endl;
+	logg::tout << "ERROR: failed to open " << imagePath << std::endl;
 
 	return false;
 }
@@ -47,53 +45,81 @@ inline bool openImage(const path &imagePath, Mat &image) {
 int main(int argc, char ** argv) {
 	
 	char* keys = 
-		"{ o| objects_path |       | path to images with object}"
-		"{ s| scenes_path  |       | path to images with scenes}"
+		"{ o| objects |       | path to images with object}"
+		"{ s| scenes |       | path to images with scenes}"
 		"{ r| recursive    | false | whether to search for images recursivly}";
 
-	CommandLineParser parser(argc, argv, keys);
-	parser.printParams();
+	cv::CommandLineParser parser(argc, argv, keys);
+//	parser.;
 
-	cout << endl;
-	std::vector<path> obj_paths = getFiles(parser.get<string>("o"), IMAGES, parser.get<bool>("r"));
-	std::vector<path> scn_paths = getFiles(parser.get<string>("s"), IMAGES, parser.get<bool>("r"));
-	cout << endl;
+	std::cout << std::endl;
+	std::vector<path> obj_paths = getFiles(parser.get<std::string>("o"), IMAGES, parser.get<bool>("r"));
+	std::vector<path> scn_paths = getFiles(parser.get<std::string>("s"), IMAGES, parser.get<bool>("r"));
+	std::cout << std::endl;
 
 	if (obj_paths.size() == 0 || scn_paths.size() == 0) {
-		cout << "ERROR: found " << obj_paths.size() << " objects and " << scn_paths.size() << " scenes" << endl;
+		std::cout << "ERROR: found " << obj_paths.size() << " objects and " << scn_paths.size() << " scenes" << std::endl;
 		return 1;
 	}
 
-	list<SiftDetector> detectors;
-	double t = (double)getTickCount();
+	std::vector<SiftDetector> detectors;
+	double t = (double)cv::getTickCount();
+
+//	{
+//		std::vector<std::thread> threads;
+//		std::vector<cv::Mat> images;
+//
+//		for(const auto & obj_path : obj_paths) {
+//			cv::Mat obj_img;
+//			if (openImage(obj_path, obj_img)) {
+//				detectors.push_back(SiftDetector(obj_path.filename().string(), OBJ_MIN_HESS));
+//				trnsf::resizeDown(obj_img, OBJ_SIZE);
+//				images.push_back(obj_img);
+//			}
+//		}
+//
+//		auto it = detectors.begin();
+//		for (size_t i = 0; i < images.size(); i++) {
+//			threads.push_back(std::thread(&SiftDetector::process, &(*it), images[i]));
+//			it++;
+//		}
+//
+//		std::cout << std::endl << "processed " << 0 << "/ " << threads.size() << " objects";
+//
+//		for (size_t i = 0; i < threads.size(); i++) {
+//			threads[i].join();
+//			std::cout << '\r' << "processed " << i + 1 << "/ " << threads.size() << " objects";
+//		}
+//
+//		std::cout << std::endl;
+//	}
 
 	{
-		std::vector<thread> threads;
-		std::vector<Mat> images;
-
-		for each (path obj_path in obj_paths) {
-			Mat obj_img;
+		for(const auto & obj_path : obj_paths) {
+			cv::Mat obj_img;
 			if (openImage(obj_path, obj_img)) {
 				detectors.push_back(SiftDetector(obj_path.filename().string(), OBJ_MIN_HESS));
 				trnsf::resizeDown(obj_img, OBJ_SIZE);
-				images.push_back(obj_img);
+//				images.push_back(obj_img);
+//				detectors.push_back(SiftDetector());
+				detectors.back().process(obj_img);
 			}
 		}
 
-		auto it = detectors.begin();
-		for (size_t i = 0; i < images.size(); i++) {
-			threads.push_back(thread(&SiftDetector::process, &(*it), images[i]));
-			it++;
-		}
+//		auto it = detectors.begin();
+//		for (size_t i = 0; i < images.size(); i++) {
+//			threads.push_back(std::thread(&SiftDetector::process, &(*it), images[i]));
+//			it++;
+//		}
+//
+//		std::cout << std::endl << "processed " << 0 << "/ " << threads.size() << " objects";
+//
+//		for (size_t i = 0; i < threads.size(); i++) {
+//			threads[i].join();
+//			std::cout << '\r' << "processed " << i + 1 << "/ " << threads.size() << " objects";
+//		}
 
-		cout << endl << "processed " << 0 << "/ " << threads.size() << " objects";
-
-		for (size_t i = 0; i < threads.size(); i++) {
-			threads[i].join();
-			cout << '\r' << "processed " << i + 1 << "/ " << threads.size() << " objects";
-		}
-
-		cout << endl;
+		std::cout << std::endl;
 	}
 
 	auto it = detectors.begin();
@@ -101,61 +127,123 @@ int main(int argc, char ** argv) {
 		if (it->isWorking()) 
 			it++;
 		else {
-			logg::tout << " ! failed to find at least " << MIN_POINTS << " points on " 
-				<< it->getName() << ", won't search for it"<< endl;
+			logg::tout << "Failed to find at least " << MIN_POINTS << " points on "
+				<< it->getName() << ", won't search for it"<< std::endl;
 			it = detectors.erase(it);
 		}
 	}
 
 	if (distance(detectors.begin(), detectors.end()) == 0) {
-		logg::tout << "ERROR: no working detectors" << endl;
+		logg::tout << "ERROR: no working detectors" << std::endl;
 		return 2;
 	}
 
 	int scn_proc = 0;
-	string session_id = logg::get_session_id();
+	std::string session_id = logg::get_session_id();
 
 	create_directory(path("results_" + session_id));
 
-	for each (path scn_path in scn_paths) {
+	for (const auto & scn_path : scn_paths) {
 
-		logg::tout << endl << endl << "time passed: " << tick(t) << " seconds"
-			<< endl << "scene: " << ++scn_proc << "/ " << scn_paths.size() << " " << endl;
-			
-		Mat img_scene;
+		logg::tout << std::endl << std::endl << "time passed: " << tick(t) << " seconds"
+			<< std::endl << "scene: " << ++scn_proc << "/ " << scn_paths.size() << " " << std::endl;
 
-		if (!openImage(scn_path, img_scene))
-			continue;
+		try {
+			cv::Mat img_scene;
 
-		trnsf::preciseResize(img_scene, SCN_SIZE);
+			if (!openImage(scn_path, img_scene))
+				continue;
 
-		SiftDetector sd_scene("scn_" + scn_path.filename().string(), SCN_MIN_HESS);
-		sd_scene.process(img_scene.clone());
+			trnsf::preciseResize(img_scene, SCN_SIZE);
 
-		if (!sd_scene.isWorking())
-			continue;
+			SiftDetector sd_scene("scn_" + scn_path.filename().string(), SCN_MIN_HESS);
+			sd_scene.process(img_scene.clone());
+
+			if (!sd_scene.isWorking())
+				continue;
+
+			for (auto & det : detectors){
+//			std::cout << std::endl;
+				det.match(sd_scene, img_scene);
+			}
 
 
-		cout << endl;
+//		std::vector<std::thread> threads;
+//
+//		for (int i = 0; i < detectors.size(); ++i){
+//			if (it->isWorking())
+//				threads.push_back(std::thread(&SiftDetector::match, detectors[i], sd_scene, img_scene));
+//		}
+////		for (auto it = detectors.begin(); it != detectors.end(); it++) {
+////			if (it->isWorking())
+////				threads.push_back(std::thread(&SiftDetector::match, &(*it), sd_scene, img_scene));
+////		}
+//
+//		for (size_t i = 0; i < threads.size(); i++)
+//			threads[i].join();
 
-		vector<thread> threads;
+			cv::imwrite("results_" + session_id + "/res_for_" + scn_path.stem().string() + ".jpg", img_scene);
 
-		for (auto it = detectors.begin(); it != detectors.end(); it++) {
-			if (it->isWorking())
-				threads.push_back(thread(&SiftDetector::match, &(*it), sd_scene, img_scene));
+		} catch (const std::exception & e){
+			std::cerr << e.what() << std::endl;
 		}
 
-		for (size_t i = 0; i < threads.size(); i++)
-			threads[i].join();
-
-		imwrite("results_" + session_id + "/res_for_" + scn_path.stem().string() + ".jpg", img_scene);
 	}
 
-	logg::tout << endl << "DONE" << endl
-		<< "total time: " << tick(t) << " seconds" << endl
-		<< "detections: " << SiftDetector::detections << endl;
+
+//	for (const auto & scn_path : scn_paths) {
+//
+//		logg::tout << std::endl << std::endl << "time passed: " << tick(t) << " seconds"
+//			<< std::endl << "scene: " << ++scn_proc << "/ " << scn_paths.size() << " " << std::endl;
+//
+//		cv::Mat img_scene;
+//
+//		if (!openImage(scn_path, img_scene))
+//			continue;
+//
+//		trnsf::preciseResize(img_scene, SCN_SIZE);
+//
+//		SiftDetector sd_scene("scn_" + scn_path.filename().string(), SCN_MIN_HESS);
+//		sd_scene.process(img_scene);
+//
+//		if (!sd_scene.isWorking())
+//			continue;
+//
+//
+//		std::cout << std::endl;
+//
+//		std::vector<std::thread> threads;
+//
+//		for (int i = 0; i < detectors.size(); ++i){
+//			if (it->isWorking())
+//				threads.push_back(std::thread(&SiftDetector::match, detectors[i], sd_scene, img_scene));
+//		}
+////		for (auto it = detectors.begin(); it != detectors.end(); it++) {
+////			if (it->isWorking())
+////				threads.push_back(std::thread(&SiftDetector::match, &(*it), sd_scene, img_scene));
+////		}
+//
+//		for (size_t i = 0; i < threads.size(); i++)
+//			threads[i].join();
+//
+//		imwrite("results_" + session_id + "/res_for_" + scn_path.stem().string() + ".jpg", img_scene);
+//	}
+
+	logg::tout << std::endl << "DONE" << std::endl
+		<< "total time: " << tick(t) << " seconds" << std::endl;
+//		<< "detections: " << SiftDetector::detections << std::endl;
 
 	cv::waitKey();
 
 	return 0;
 }
+
+// todo cleanup
+// todo calc stats: avg, median time, how many objects of each type detected
+// todo namespaces -> utils
+// todo better exception handling
+// todo refactor logging
+// todo use gflags?
+// todo better debug demonstration? move it to main?
+// todo better comments
+// todo update readme

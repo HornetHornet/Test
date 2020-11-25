@@ -9,27 +9,27 @@
 namespace trnsf 
 {
 	//resize so that the max dimention be equal to "size"
-	static void preciseResize(Mat &image, double size) {
-		double resizeFactor = min(size / image.rows, size / image.cols);
-		cv::resize(image, image, Size(), resizeFactor, resizeFactor, cv::INTER_CUBIC);
+	static void preciseResize(cv::Mat &image, double size) {
+		double resizeFactor = std::min(size / image.rows, size / image.cols);
+		cv::resize(image, image, cv::Size(), resizeFactor, resizeFactor, cv::INTER_CUBIC);
 	};
 
 	//resize down if one of image dimensions is more than "size"
-	static void resizeDown(Mat &image, double size) {
-		if (max(image.rows, image.cols) > size)
+	static void resizeDown(cv::Mat &image, double size) {
+		if (std::max(image.rows, image.cols) > size)
 			preciseResize(image, size);
 	};
 
 	//resize up if image dimensions is less than "size"
-	static void resizeUp(Mat &image, double size) {
-		if (max(image.rows, image.cols) < size)
+	static void resizeUp(cv::Mat &image, double size) {
+		if (std::max(image.rows, image.cols) < size)
 			preciseResize(image, size);
 	};
 
 	//replace transparent with white
-	static void makeOpaque(Mat &image) {
+	static void makeOpaque(cv::Mat &image) {
 
-		Mat channels[4];
+		cv::Mat channels[4];
 
 		split(image, channels);
 		bitwise_not(channels[3], channels[3]);
