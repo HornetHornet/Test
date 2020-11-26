@@ -17,7 +17,7 @@
 #ifndef DETECTORS_H
 #define DETECTORS_H
 
-class Detector : public logg {
+class Detector {
 protected:
 	std::string name;
 	bool working = false;
