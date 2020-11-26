@@ -6,7 +6,6 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
-//#include "Logger.h"
 
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/tee.hpp>

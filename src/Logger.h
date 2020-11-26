@@ -3,16 +3,11 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include <stdio.h>
-#include <iostream>
 #include <fstream>
-#include <chrono>
 #include <sstream>
-#include <iomanip>
 
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/tee.hpp>
-#include <boost/filesystem/operations.hpp>
 
 
 typedef boost::iostreams::tee_device<std::ostream, std::ofstream> Tee;
@@ -43,7 +38,7 @@ public:
 };
 
 
-#define expect(X) if (!X) throw std::runtime_error(\
+#define expect(X) if (!(X)) throw std::runtime_error(\
 	Formatter() << __FILE__ << ":" << __LINE__ << " " << #X >> Formatter::to_str);
 
 

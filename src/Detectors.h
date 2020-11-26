@@ -19,7 +19,7 @@
 
 class Detector {
 protected:
-	std::string name;
+	std::string object_id;
 	bool working = false;
 
 	Detector();
@@ -30,19 +30,17 @@ public:
 };
 
 class SiftDetector : public Detector {
-	cv::Ptr<cv::Feature2D> sift;
-
-	int minHessian;
+	cv::Ptr<cv::Feature2D> features;
 
 	std::vector<cv::Point2f> obj_corners;
 	std::vector<cv::KeyPoint> keypoints;
 	cv::Mat descriptors;
 
 public:
-	SiftDetector(const std::string & n, int MinHess);
+	SiftDetector(const std::string &object_id, int MinHess);
 
 	void process(cv::Mat image);
-	void match(const SiftDetector sd_scene, const cv::Mat &img_scene) const;
+	void match(const SiftDetector & sd_scene, const cv::Mat &img_scene) const;
 
 //	static int SiftDetector::detections;
 };

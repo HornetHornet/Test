@@ -1,14 +1,11 @@
 #include <unordered_set>
-#include "opencv2/xfeatures2d.hpp"
+#include <opencv2/xfeatures2d.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "Detectors.h"
 #include "GeneralTransforms.h"
 #include "Geometry.h"
 
-#include <boost/algorithm/string.hpp>
-
-
-/*members of Detector */
 
 Detector::Detector()
 	: working(false)
@@ -19,31 +16,26 @@ bool Detector::isWorking() const {
 };
 
 std::string Detector::getName() const {
-	return name;
+	return object_id;
 };
-
-/*members of SiftDetector */
 
 //int SiftDetector::detections = 0;
 
-SiftDetector::SiftDetector(const std::string & n, int minHess)  {
-
-	minHessian = minHess;
-	name = n;
-//	sift = cv::ORB::create();
-	sift = cv::xfeatures2d::SIFT::create();
+SiftDetector::SiftDetector(const std::string &object_id_, int minHess)  {
+	object_id = object_id_;
+	features = cv::xfeatures2d::SIFT::create(minHess, 3);
 };
 
-void pretty_put_line(const cv::Mat & image, std::string line, const cv::Point & pos)
+void pretty_put_line(const cv::Mat & image, const std::string & line, const cv::Point & pos)
 {
 	auto font_id = cv::FONT_HERSHEY_PLAIN;
 	double font_scale = 1;
 
 	int thickness = 3;
-	cv::putText(image, line, pos, font_id, font_scale, {0, 0, 0, 0}, 3);
+	cv::putText(image, line, pos, font_id, font_scale, {0, 0, 0, 0}, thickness);
 
 	thickness = 1;
-	cv::putText(image, line, pos, font_id, font_scale, {255, 255, 125}, 1);
+	cv::putText(image, line, pos, font_id, font_scale, {255, 255, 125}, thickness);
 }
 
 // check, convert to grayscale, calculate keypoints and descriptors
@@ -52,13 +44,14 @@ void SiftDetector::process(cv::Mat image) {
 	if (!image.data)
 		return;
 	
-	obj_corners.resize(4);
+	obj_corners = {
+			cv::Point(0, 0),
+			cv::Point(image.cols, 0),
+			cv::Point(image.cols, image.rows),
+			cv::Point(0, image.rows),
+	};
 
-	obj_corners[0] = cv::Point(0, 0);
-	obj_corners[1] = cv::Point(image.cols, 0);
-	obj_corners[2] = cv::Point(image.cols, image.rows);
-	obj_corners[3] = cv::Point(0, image.rows);
-	assert(!image.empty());
+	expect(!image.empty());
 //	log_state << image.type() << std::endl;
 	cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
 
@@ -66,7 +59,7 @@ void SiftDetector::process(cv::Mat image) {
 	image.convertTo(image, -1, 1.5, 0);
 
 //	SiftFeatureDetector detector(minHessian, 3);
-	sift->detect(image, keypoints);
+	features->detect(image, keypoints);
 
 //	detector.detect(image, keypoints);
 
@@ -74,7 +67,7 @@ void SiftDetector::process(cv::Mat image) {
 		return;
 
 //	Mat descriptors_1, descriptors_2;
-	sift->compute(image, keypoints, descriptors);
+	features->compute(image, keypoints, descriptors);
 
 //	SiftDescriptorExtractor extractor;
 //	extractor.compute(image, keypoints, descriptors);
@@ -83,7 +76,7 @@ void SiftDetector::process(cv::Mat image) {
 };
 
 // find matches in two precalculated sets of keypoints and descriptors
-void SiftDetector::match(const SiftDetector sd_scene, const cv::Mat &img_scene) const {
+void SiftDetector::match(const SiftDetector & sd_scene, const cv::Mat &img_scene) const {
 
 	if (!working || !sd_scene.isWorking())
 		return;
@@ -149,7 +142,6 @@ void SiftDetector::match(const SiftDetector sd_scene, const cv::Mat &img_scene) 
 
 //		SiftDetector::detections++;
 
-
 		for (auto & p : scn_corners){
 			p.x = std::max<float>(p.x, 0);
 			p.y = std::max<float>(p.y, 0);
@@ -157,7 +149,7 @@ void SiftDetector::match(const SiftDetector sd_scene, const cv::Mat &img_scene) 
 			p.y = std::min<float>(p.y, img_scene.size().height);
 		}
 
-		log_state << "found: " << name << std::endl;
+		log_state << "found: " << object_id << std::endl;
 
 		for (int i = 0; i < scn_corners.size(); i++){
 			auto p1 = scn_corners[i];
@@ -165,17 +157,9 @@ void SiftDetector::match(const SiftDetector sd_scene, const cv::Mat &img_scene) 
 			line(img_scene, p1, p2, cv::Scalar(0, 255, 0), 3);
 		}
 
-//		putText(img_scene, boost::to_upper_copy<std::string>(name),
-//			geom::centroid(scn_corners) - cv::Point2f(30,0), cv::FONT_HERSHEY_DUPLEX, 0.5,
-//			    cv::Scalar(255, 255, 255), 1, 1, 0);
-//
-//		putText(img_scene, boost::to_upper_copy<std::string>(name),
-//			geom::centroid(scn_corners) - cv::Point2f(30, 15), cv::FONT_HERSHEY_DUPLEX, 0.5,
-//			    cv::Scalar(0, 0, 0), 1, 1, 0);
-
 		pretty_put_line(
 				img_scene,
-				boost::to_upper_copy<std::string>(name),
+				boost::to_upper_copy<std::string>(object_id),
 				geom::centroid(scn_corners) - cv::Point2f(30,0)
 				);
 

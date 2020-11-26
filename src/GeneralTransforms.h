@@ -5,8 +5,9 @@
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#include "Logger.h"
 
-namespace trnsf 
+namespace trnsf
 {
 	//resize so that the max dimention be equal to "size"
 	static void preciseResize(cv::Mat &image, double size) {
@@ -28,7 +29,7 @@ namespace trnsf
 
 	//replace transparent with white
 	static void makeOpaque(cv::Mat &image) {
-
+		expect(image.channels() == 4);
 		cv::Mat channels[4];
 
 		split(image, channels);

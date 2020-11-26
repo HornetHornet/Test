@@ -3,6 +3,7 @@
 #include "Detectors.h"
 #include "GetFiles.h"
 #include "GeneralTransforms.h"
+#include <iomanip>
 
 #define OBJ_MIN_HESS 400
 #define SCN_MIN_HESS 750
@@ -21,14 +22,6 @@ static std::string get_session_id() {
 
 	std::stringstream session_id;
 	session_id << std::put_time(std::localtime(&tt), "%Y-%m-%d-%H:%M:%S");
-
-//	struct tm local_tm;
-//	localtime_s(&local_tm, &tt);
-//
-//
-//	session_id << "D" << local_tm.tm_mday
-//		<< "_H" << local_tm.tm_hour
-//		<< "_M" << (local_tm.tm_min / 10) * 10;
 
 	return session_id.str();
 }
@@ -71,13 +64,12 @@ int main(int argc, char ** argv) {
 	std::string session_id = get_session_id();
 	init_logger(session_id);
 
-	char* keys = 
+	std::string arg_keys =
 		"{ o| objects |       | path to images with object}"
 		"{ s| data |       | path to images with data}"
-		"{ r| recursive    | false | whether to search for images recursivly}";
+		;
 
-	cv::CommandLineParser parser(argc, argv, keys);
-//	parser.;
+	cv::CommandLineParser parser(argc, argv, arg_keys.c_str());
 
 	std::vector<bfs::path> obj_paths = list_files(parser.get<std::string>("o"), IMAGES);
 	std::vector<bfs::path> scn_paths = list_files(parser.get<std::string>("s"), IMAGES);
@@ -261,7 +253,6 @@ int main(int argc, char ** argv) {
 	return 0;
 }
 
-// todo cleanup
 // todo calc stats: avg, median time, how many objects of each type detected
 // todo namespaces -> utils
 // todo better exception handling
