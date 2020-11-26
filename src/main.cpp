@@ -1,9 +1,8 @@
+#include <iomanip>
 #include <thread>
-
 #include "detection.hpp"
 #include "file-utils.hpp"
 #include "img-utils.hpp"
-#include <iomanip>
 
 #define OBJ_MIN_HESS 400
 #define SCN_MIN_HESS 750
@@ -15,7 +14,8 @@
 namespace bfs = boost::filesystem;
 
 
-static std::string get_session_id() {
+static std::string get_session_id()
+{
 
 	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
 	time_t tt = std::chrono::system_clock::to_time_t(now);
@@ -27,30 +27,34 @@ static std::string get_session_id() {
 }
 
 
-inline double tick(double t) {
-	return ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+inline double tick(double t)
+{
+	return ((double) cv::getTickCount() - t) / cv::getTickFrequency();
 }
 
 
-inline bool openImage(const bfs::path &imagePath, cv::Mat &image) {
+inline bool openImage(const bfs::path &imagePath, cv::Mat &image)
+{
 
 	image = cv::imread(imagePath.string(), cv::IMREAD_UNCHANGED);
 
-	if (image.data) {
+	if (image.data)
+	{
 		log_state << "opened: " << imagePath.filename().string() << std::endl;
 
 		if (image.channels() == 4)
 			imgutils::makeOpaque(image);
 
-		switch (image.type()) {
-		case(CV_8UC3) : 
-			break;
-		case(CV_16UC3) : 
-			image.convertTo(image, CV_8UC3, 1.0 / 256);
-			break;
-		default: 
-			image.convertTo(image, CV_8UC3);
-			break;
+		switch (image.type())
+		{
+			case (CV_8UC3) :
+				break;
+			case (CV_16UC3) :
+				image.convertTo(image, CV_8UC3, 1.0 / 256);
+				break;
+			default:
+				image.convertTo(image, CV_8UC3);
+				break;
 		}
 
 		return true;
@@ -62,27 +66,29 @@ inline bool openImage(const bfs::path &imagePath, cv::Mat &image) {
 }
 
 
-int main(int argc, char ** argv) {
+int main(int argc, char **argv)
+{
 	std::string session_id = get_session_id();
 	init_logger(session_id);
 
 	std::string arg_keys =
-		"{ o| objects |       | path to images with object}"
-		"{ s| data |       | path to images with data}"
-		;
+			"{ o| objects |       | path to images with object}"
+			"{ s| data |       | path to images with data}";
 
 	cv::CommandLineParser parser(argc, argv, arg_keys.c_str());
 
 	std::vector<bfs::path> obj_paths = list_files(parser.get<std::string>("o"), IMAGES);
 	std::vector<bfs::path> scn_paths = list_files(parser.get<std::string>("s"), IMAGES);
 
-	if (obj_paths.size() == 0 || scn_paths.size() == 0) {
-		log_err << obj_paths.size() << " objects and " << scn_paths.size() << " data" << std::endl;
+	if (obj_paths.size() == 0 || scn_paths.size() == 0)
+	{
+		log_err << obj_paths.size() << " objects and " << scn_paths.size() << " data"
+		        << std::endl;
 		return 1;
 	}
 
 	std::vector<SiftDetector> detectors;
-	double t = (double)cv::getTickCount();
+	double t = (double) cv::getTickCount();
 
 //	{
 //		std::vector<std::thread> threads;
@@ -114,10 +120,13 @@ int main(int argc, char ** argv) {
 //	}
 
 	{
-		for(const auto & obj_path : obj_paths) {
+		for (const auto &obj_path : obj_paths)
+		{
 			cv::Mat obj_img;
-			if (openImage(obj_path, obj_img)) {
-				detectors.push_back(SiftDetector(obj_path.filename().string(), OBJ_MIN_HESS));
+			if (openImage(obj_path, obj_img))
+			{
+				detectors.push_back(
+						SiftDetector(obj_path.filename().string(), OBJ_MIN_HESS));
 				imgutils::resizeDown(obj_img, OBJ_SIZE);
 //				images.push_back(obj_img);
 //				detectors.push_back(SiftDetector());
@@ -141,17 +150,20 @@ int main(int argc, char ** argv) {
 	}
 
 	auto it = detectors.begin();
-	while (it != detectors.end())	{
-		if (it->isWorking()) 
+	while (it != detectors.end())
+	{
+		if (it->isWorking())
 			it++;
-		else {
+		else
+		{
 			log_err << "Failed to find at least " << MIN_POINTS << " points on "
-				<< it->getName() << ", won't search for it"<< std::endl;
+			        << it->getName() << ", won't search for it" << std::endl;
 			it = detectors.erase(it);
 		}
 	}
 
-	if (distance(detectors.begin(), detectors.end()) == 0) {
+	if (distance(detectors.begin(), detectors.end()) == 0)
+	{
 		log_state << "ERROR: no working detectors" << std::endl;
 		return 2;
 	}
@@ -160,12 +172,15 @@ int main(int argc, char ** argv) {
 
 	bfs::create_directories(bfs::path("results/" + session_id));
 
-	for (const auto & scn_path : scn_paths) {
+	for (const auto &scn_path : scn_paths)
+	{
 
-		log_state << std::endl << std::endl << "time passed: " << tick(t) << " seconds"
-			<< std::endl << "scene: " << ++scn_proc << "/ " << scn_paths.size() << " " << std::endl;
+		log_state
+				<< "time passed: " << tick(t) << " seconds" << std::endl
+				<< "scene: " << ++scn_proc << " / " << scn_paths.size() << std::endl;
 
-		try {
+		try
+		{
 			cv::Mat img_scene;
 
 			if (!openImage(scn_path, img_scene))
@@ -179,7 +194,8 @@ int main(int argc, char ** argv) {
 			if (!sd_scene.isWorking())
 				continue;
 
-			for (auto & det : detectors){
+			for (auto &det : detectors)
+			{
 //			log_state << std::endl;
 				det.match(sd_scene, img_scene);
 			}
@@ -199,9 +215,12 @@ int main(int argc, char ** argv) {
 //		for (size_t i = 0; i < threads.size(); i++)
 //			threads[i].join();
 
-			cv::imwrite("results_" + session_id + "/res_for_" + scn_path.stem().string() + ".jpg", img_scene);
+			cv::imwrite("results_" + session_id + "/res_for_" + scn_path.stem().string() +
+			            ".jpg", img_scene);
 
-		} catch (const std::exception & e){
+		}
+		catch (const std::exception &e)
+		{
 			log_err << e.what() << std::endl;
 		}
 
@@ -247,7 +266,7 @@ int main(int argc, char ** argv) {
 //	}
 
 	log_state << std::endl << "DONE" << std::endl
-		<< "total time: " << tick(t) << " seconds" << std::endl;
+	          << "total time: " << tick(t) << " seconds" << std::endl;
 //		<< "detections: " << SiftDetector::detections << std::endl;
 
 	cv::waitKey();
@@ -256,7 +275,6 @@ int main(int argc, char ** argv) {
 }
 
 // todo calc stats: avg, median time, how many objects of each type detected
-// todo namespaces -> utils
 // todo better exception handling
 // todo use gflags?
 // todo better debug demonstration? move it to main?
