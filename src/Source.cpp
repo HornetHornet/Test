@@ -10,11 +10,36 @@
 #define OBJ_SIZE 256
 #define SCN_SIZE 780
 
+
+namespace bfs = boost::filesystem;
+
+
+static std::string get_session_id() {
+
+	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+	time_t tt = std::chrono::system_clock::to_time_t(now);
+
+	std::stringstream session_id;
+	session_id << std::put_time(std::localtime(&tt), "%Y-%m-%d-%H:%M:%S");
+
+//	struct tm local_tm;
+//	localtime_s(&local_tm, &tt);
+//
+//
+//	session_id << "D" << local_tm.tm_mday
+//		<< "_H" << local_tm.tm_hour
+//		<< "_M" << (local_tm.tm_min / 10) * 10;
+
+	return session_id.str();
+}
+
+
 inline double tick(double t) {
 	return ((double)cv::getTickCount() - t) / cv::getTickFrequency();
 }
 
-inline bool openImage(const path &imagePath, cv::Mat &image) {
+
+inline bool openImage(const bfs::path &imagePath, cv::Mat &image) {
 
 	image = cv::imread(imagePath.string(), cv::IMREAD_UNCHANGED);
 
@@ -43,7 +68,9 @@ inline bool openImage(const path &imagePath, cv::Mat &image) {
 
 
 int main(int argc, char ** argv) {
-	
+	std::string session_id = get_session_id();
+	init_logger(session_id);
+
 	char* keys = 
 		"{ o| objects |       | path to images with object}"
 		"{ s| data |       | path to images with data}"
@@ -53,8 +80,7 @@ int main(int argc, char ** argv) {
 //	parser.;
 
 	std::vector<bfs::path> obj_paths = list_files(parser.get<std::string>("o"), IMAGES);
-	std::vector<path> obj_paths = getFiles(parser.get<std::string>("o"), IMAGES, parser.get<bool>("r"));
-	std::vector<path> scn_paths = getFiles(parser.get<std::string>("s"), IMAGES, parser.get<bool>("r"));
+	std::vector<bfs::path> scn_paths = list_files(parser.get<std::string>("s"), IMAGES);
 
 	if (obj_paths.size() == 0 || scn_paths.size() == 0) {
 		log_err << obj_paths.size() << " objects and " << scn_paths.size() << " data" << std::endl;
