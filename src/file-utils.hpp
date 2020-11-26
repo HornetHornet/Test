@@ -8,7 +8,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp> 
-#include "Logger.h"
+#include "logger.hpp"
 
 enum fileTypes {IMAGES, VIDEOS, CASCADES};
 

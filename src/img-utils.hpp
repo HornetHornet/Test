@@ -5,9 +5,9 @@
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-#include "Logger.h"
+#include "logger.hpp"
 
-namespace trnsf
+namespace imgutils
 {
 	//resize so that the max dimention be equal to "size"
 	static void preciseResize(cv::Mat &image, double size) {

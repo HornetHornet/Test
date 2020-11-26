@@ -2,9 +2,9 @@
 #include <opencv2/xfeatures2d.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "Detectors.h"
-#include "GeneralTransforms.h"
-#include "Geometry.h"
+#include "detection.hpp"
+#include "img-utils.hpp"
+#include "geom-utils.hpp"
 
 
 Detector::Detector()

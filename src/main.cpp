@@ -1,8 +1,8 @@
 #include <thread>
 
-#include "Detectors.h"
-#include "GetFiles.h"
-#include "GeneralTransforms.h"
+#include "detection.hpp"
+#include "file-utils.hpp"
+#include "img-utils.hpp"
 #include <iomanip>
 
 #define OBJ_MIN_HESS 400
@@ -20,10 +20,10 @@ static std::string get_session_id() {
 	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
 	time_t tt = std::chrono::system_clock::to_time_t(now);
 
-	std::stringstream session_id;
-	session_id << std::put_time(std::localtime(&tt), "%Y-%m-%d-%H:%M:%S");
+	std::stringstream ss;
+	ss << std::put_time(std::localtime(&tt), "%Y-%m-%d-%H:%M:%S");
 
-	return session_id.str();
+	return ss.str();
 }
 
 
@@ -40,15 +40,17 @@ inline bool openImage(const bfs::path &imagePath, cv::Mat &image) {
 		log_state << "opened: " << imagePath.filename().string() << std::endl;
 
 		if (image.channels() == 4)
-			trnsf::makeOpaque(image);
+			imgutils::makeOpaque(image);
 
 		switch (image.type()) {
 		case(CV_8UC3) : 
 			break;
 		case(CV_16UC3) : 
-			image.convertTo(image, CV_8UC3, 1.0 / 256); break;
+			image.convertTo(image, CV_8UC3, 1.0 / 256);
+			break;
 		default: 
-			image.convertTo(image, CV_8UC3); break;
+			image.convertTo(image, CV_8UC3);
+			break;
 		}
 
 		return true;
@@ -116,7 +118,7 @@ int main(int argc, char ** argv) {
 			cv::Mat obj_img;
 			if (openImage(obj_path, obj_img)) {
 				detectors.push_back(SiftDetector(obj_path.filename().string(), OBJ_MIN_HESS));
-				trnsf::resizeDown(obj_img, OBJ_SIZE);
+				imgutils::resizeDown(obj_img, OBJ_SIZE);
 //				images.push_back(obj_img);
 //				detectors.push_back(SiftDetector());
 				detectors.back().process(obj_img);
@@ -169,7 +171,7 @@ int main(int argc, char ** argv) {
 			if (!openImage(scn_path, img_scene))
 				continue;
 
-			trnsf::preciseResize(img_scene, SCN_SIZE);
+			imgutils::preciseResize(img_scene, SCN_SIZE);
 
 			SiftDetector sd_scene("scn_" + scn_path.filename().string(), SCN_MIN_HESS);
 			sd_scene.process(img_scene.clone());

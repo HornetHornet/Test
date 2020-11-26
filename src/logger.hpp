@@ -5,6 +5,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/tee.hpp>
