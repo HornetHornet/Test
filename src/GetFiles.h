@@ -36,7 +36,7 @@ std::vector<path> getFiles(const path &thePath, fileTypes types, bool recusively
 	std::vector<path> listOfFiles;
 
 	if (!exists(thePath)) {
-		std::cerr << "ERROR: " << thePath.string() << " is invalid path" << std::endl;
+		log_err << "ERROR: " << parent_path << " is invalid path" << std::endl;
 		return listOfFiles;
 	}
 	
@@ -79,7 +79,7 @@ std::vector<path> getFiles(const path &thePath, fileTypes types, bool recusively
 		}
 	}
 		
-	std::cout << listOfFiles.size() << " " << object_name << " in " << thePath << " found" << std::endl;
+	log_state << list_of_files.size() << " " << object_name << " in " << parent_path << " found" << std::endl;
 
 	return listOfFiles;
 }

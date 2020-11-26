@@ -19,7 +19,7 @@ inline bool openImage(const path &imagePath, cv::Mat &image) {
 	image = cv::imread(imagePath.string(), cv::IMREAD_UNCHANGED);
 
 	if (image.data) {
-		std::cout << "opened: " << imagePath.filename().string() << std::endl;
+		log_state << "opened: " << imagePath.filename().string() << std::endl;
 
 		if (image.channels() == 4)
 			trnsf::makeOpaque(image);
@@ -36,7 +36,7 @@ inline bool openImage(const path &imagePath, cv::Mat &image) {
 		return true;
 	}
 
-	logg::tout << "ERROR: failed to open " << imagePath << std::endl;
+	log_err << "ERROR: failed to open " << imagePath << std::endl;
 
 	return false;
 }
@@ -52,13 +52,12 @@ int main(int argc, char ** argv) {
 	cv::CommandLineParser parser(argc, argv, keys);
 //	parser.;
 
-	std::cout << std::endl;
+	std::vector<bfs::path> obj_paths = list_files(parser.get<std::string>("o"), IMAGES);
 	std::vector<path> obj_paths = getFiles(parser.get<std::string>("o"), IMAGES, parser.get<bool>("r"));
 	std::vector<path> scn_paths = getFiles(parser.get<std::string>("s"), IMAGES, parser.get<bool>("r"));
-	std::cout << std::endl;
 
 	if (obj_paths.size() == 0 || scn_paths.size() == 0) {
-		std::cout << "ERROR: found " << obj_paths.size() << " objects and " << scn_paths.size() << " data" << std::endl;
+		log_err << obj_paths.size() << " objects and " << scn_paths.size() << " data" << std::endl;
 		return 1;
 	}
 
@@ -84,14 +83,14 @@ int main(int argc, char ** argv) {
 //			it++;
 //		}
 //
-//		std::cout << std::endl << "processed " << 0 << "/ " << threads.size() << " objects";
+//		log_state << std::endl << "processed " << 0 << "/ " << threads.size() << " objects";
 //
 //		for (size_t i = 0; i < threads.size(); i++) {
 //			threads[i].join();
-//			std::cout << '\r' << "processed " << i + 1 << "/ " << threads.size() << " objects";
+//			log_state << '\r' << "processed " << i + 1 << "/ " << threads.size() << " objects";
 //		}
 //
-//		std::cout << std::endl;
+//		log_state << std::endl;
 //	}
 
 	{
@@ -112,14 +111,13 @@ int main(int argc, char ** argv) {
 //			it++;
 //		}
 //
-//		std::cout << std::endl << "processed " << 0 << "/ " << threads.size() << " objects";
+//		log_state << std::endl << "processed " << 0 << "/ " << threads.size() << " objects";
 //
 //		for (size_t i = 0; i < threads.size(); i++) {
 //			threads[i].join();
-//			std::cout << '\r' << "processed " << i + 1 << "/ " << threads.size() << " objects";
+//			log_state << '\r' << "processed " << i + 1 << "/ " << threads.size() << " objects";
 //		}
 
-		std::cout << std::endl;
 	}
 
 	auto it = detectors.begin();
@@ -127,25 +125,24 @@ int main(int argc, char ** argv) {
 		if (it->isWorking()) 
 			it++;
 		else {
-			logg::tout << "Failed to find at least " << MIN_POINTS << " points on "
+			log_err << "Failed to find at least " << MIN_POINTS << " points on "
 				<< it->getName() << ", won't search for it"<< std::endl;
 			it = detectors.erase(it);
 		}
 	}
 
 	if (distance(detectors.begin(), detectors.end()) == 0) {
-		logg::tout << "ERROR: no working detectors" << std::endl;
+		log_state << "ERROR: no working detectors" << std::endl;
 		return 2;
 	}
 
 	int scn_proc = 0;
-	std::string session_id = logg::get_session_id();
 
-	create_directory(path("results/" + session_id));
+	bfs::create_directories(bfs::path("results/" + session_id));
 
 	for (const auto & scn_path : scn_paths) {
 
-		logg::tout << std::endl << std::endl << "time passed: " << tick(t) << " seconds"
+		log_state << std::endl << std::endl << "time passed: " << tick(t) << " seconds"
 			<< std::endl << "scene: " << ++scn_proc << "/ " << scn_paths.size() << " " << std::endl;
 
 		try {
@@ -163,7 +160,7 @@ int main(int argc, char ** argv) {
 				continue;
 
 			for (auto & det : detectors){
-//			std::cout << std::endl;
+//			log_state << std::endl;
 				det.match(sd_scene, img_scene);
 			}
 
@@ -185,7 +182,7 @@ int main(int argc, char ** argv) {
 			cv::imwrite("results_" + session_id + "/res_for_" + scn_path.stem().string() + ".jpg", img_scene);
 
 		} catch (const std::exception & e){
-			std::cerr << e.what() << std::endl;
+			log_err << e.what() << std::endl;
 		}
 
 	}
@@ -210,7 +207,7 @@ int main(int argc, char ** argv) {
 //			continue;
 //
 //
-//		std::cout << std::endl;
+//		log_state << std::endl;
 //
 //		std::vector<std::thread> threads;
 //
@@ -229,7 +226,7 @@ int main(int argc, char ** argv) {
 //		imwrite("results_" + session_id + "/res_for_" + scn_path.stem().string() + ".jpg", img_scene);
 //	}
 
-	logg::tout << std::endl << "DONE" << std::endl
+	log_state << std::endl << "DONE" << std::endl
 		<< "total time: " << tick(t) << " seconds" << std::endl;
 //		<< "detections: " << SiftDetector::detections << std::endl;
 
@@ -242,7 +239,6 @@ int main(int argc, char ** argv) {
 // todo calc stats: avg, median time, how many objects of each type detected
 // todo namespaces -> utils
 // todo better exception handling
-// todo refactor logging
 // todo use gflags?
 // todo better debug demonstration? move it to main?
 // todo better comments

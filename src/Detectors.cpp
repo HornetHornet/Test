@@ -59,7 +59,7 @@ void SiftDetector::process(cv::Mat image) {
 	obj_corners[2] = cv::Point(image.cols, image.rows);
 	obj_corners[3] = cv::Point(0, image.rows);
 	assert(!image.empty());
-//	std::cout << image.type() << std::endl;
+//	log_state << image.type() << std::endl;
 	cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
 
 	// SiftFeatureDetector have an option of contrast threshold but this worked out better
@@ -127,8 +127,8 @@ void SiftDetector::match(const SiftDetector sd_scene, const cv::Mat &img_scene) 
 		cv::Mat homography = cv::findHomography(obj_points, scn_points, cv::RANSAC);
 
 		std::vector<cv::Point2f> scn_corners(4);
-//		std::cout << obj_corners.size() << std::endl;
-//		std::cout << homography.size() << std::endl;
+//		log_state << obj_corners.size() << std::endl;
+//		log_state << homography.size() << std::endl;
 
 		if (homography.empty()){
 			break;
@@ -157,7 +157,7 @@ void SiftDetector::match(const SiftDetector sd_scene, const cv::Mat &img_scene) 
 			p.y = std::min<float>(p.y, img_scene.size().height);
 		}
 
-		logg::tout << "found: " << name << std::endl;
+		log_state << "found: " << name << std::endl;
 
 		for (int i = 0; i < scn_corners.size(); i++){
 			auto p1 = scn_corners[i];

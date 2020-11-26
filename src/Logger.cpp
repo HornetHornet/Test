@@ -1,43 +1,43 @@
-
-#include <iomanip>
 #include "Logger.h"
 
-/*members of logg*/
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <chrono>
+#include <sstream>
+#include <iomanip>
+//#include "Logger.h"
 
-//std::ofstream logg::clck("clock.log", std::ofstream::app);
-std::ofstream logg::clck;
-std::ofstream logg::err;
+#include <boost/iostreams/stream.hpp>
+#include <boost/iostreams/tee.hpp>
+#include <boost/filesystem/operations.hpp>
 
-time_t logg::start = clock();
 
-std::ofstream logg::fout("logo_" + get_session_id() + ".log", std::ofstream::app);
-Tee logg::tee(std::cout, fout);
-TeeStream logg::tout(tee);
+Logger::Logger(const std::string & id)
+: state_stream(Tee(std::cout, log_stream)), err_stream(Tee(std::cerr, log_stream))
+{
+	namespace bfs = boost::filesystem;
+	bfs::path log_parent_path = "logs/";
 
-void logg::reset_clock() {
-	start = clock();
+	if(!bfs::exists(log_parent_path))
+		bfs::create_directories(log_parent_path);
+	expect(bfs::exists(log_parent_path));
+
+	bfs::path log_path = log_parent_path / (id + ".log");
+
+	log_stream.open(log_path.string());
+	expect(log_stream.is_open());
 }
 
-void logg::write_clock(const std::string name) {
-	logg::clck << name << " took " << clock() - logg::start << std::endl;
-	start = clock();
+
+std::shared_ptr<Logger> logger_p;
+
+void init_logger(const std::string & id){
+	logger_p.reset(new Logger(id));
 }
 
-std::string logg::get_session_id() {
-
-	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-	time_t tt = std::chrono::system_clock::to_time_t(now);
-
-	std::stringstream session_id;
-	session_id << std::put_time(std::localtime(&tt), "%Y-%m-%d-%H:%M:%S");
-
-//	struct tm local_tm;
-//	localtime_s(&local_tm, &tt);
-//
-//
-//	session_id << "D" << local_tm.tm_mday
-//		<< "_H" << local_tm.tm_hour
-//		<< "_M" << (local_tm.tm_min / 10) * 10;
-
-	return session_id.str();
+std::shared_ptr<Logger> get_logger(){
+	return logger_p;
 }
+
+
