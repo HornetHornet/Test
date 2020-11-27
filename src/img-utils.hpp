@@ -7,7 +7,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "logger.hpp"
 
-//resize so that the max dimention be equal to "size"
+//resize so that the max dimension be equal to "size"
 static void preciseResize(cv::Mat &image, double size)
 {
 	double resizeFactor = std::min(size / image.rows, size / image.cols);
@@ -84,8 +84,8 @@ static cv::Scalar makeRandColor()
 	return clr;
 }
 
-
-static void fitPoly(std::vector<cv::Point2d> & poly, const cv::Size & img_size)
+template<typename T>
+static void fitPoly(std::vector<cv::Point_<T>> & poly, const cv::Size & img_size)
 {
 	for (auto &point : poly)
 	{
@@ -95,7 +95,8 @@ static void fitPoly(std::vector<cv::Point2d> & poly, const cv::Size & img_size)
 }
 
 
-static void drawPoly(cv::Mat & img, const std::vector<cv::Point2d> & poly, const cv::Scalar & clr)
+template<typename T>
+static void drawPoly(cv::Mat & img, const std::vector<cv::Point_<T>> & poly, const cv::Scalar & clr)
 {
 	for (int i = 0; i < poly.size(); i++)
 	{

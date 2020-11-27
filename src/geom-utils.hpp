@@ -4,6 +4,7 @@
 #define GEOMETRY_H
 
 #include <math.h>
+#include <numeric>
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "logger.hpp"
@@ -56,7 +57,8 @@ namespace geom
 	}
 
 	// returns true if quadrangle is resembling a rectangle
-	inline bool checkQuadrangle(std::vector<cv::Point2d> &quad)
+	template<typename T>
+	inline bool checkQuadrangle(std::vector<cv::Point_<T>> &quad)
 	{
 		if (!intersect(quad[0], quad[2], quad[1], quad[3]))
 			return false;
@@ -97,7 +99,9 @@ namespace geom
 	}
 
 	// returns centroid of a polygon
-	static cv::Point2d centroid(std::vector<cv::Point2d> polygon)
+
+	template<typename T>
+	static cv::Point_<T> centroid(std::vector<cv::Point_<T>> polygon)
 	{
 		cv::Point2d c(0, 0);
 		double a = 0;
@@ -158,6 +162,33 @@ namespace geom
 			return true;
 		}
 	};
+
+	inline double calcAngle(const cv::Point2d & p)
+	{
+		if (p.x == 0)
+			return 0;
+
+		double a = std::atan(p.y / p.x);
+
+		if (p.x < 0)
+			a += M_PI;
+
+		a += 3 * M_PI;
+		while (a > 2 * M_PI)
+			a -= 2 * M_PI;
+
+		return a;
+	}
+
+
+	static void makeConvex(std::vector<cv::Point2d> & poly)
+	{
+		cv::Point2d c = std::accumulate(poly.begin(), poly.end(), cv::Point2d(0, 0));
+		c.x /= poly.size();
+		c.y /= poly.size();
+		std::sort(poly.begin(), poly.end(),
+				[&](const auto & a, const auto & b){return calcAngle(a - c) < calcAngle(b - c);});
+	}
 }
 
 

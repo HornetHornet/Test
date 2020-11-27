@@ -12,10 +12,22 @@ Detector::Detector(const std::string & obj_id) : object_id(obj_id)
 
 //int KeyPointFeatureDetector::detections = 0;
 
-KeyPointFeatureDetector::KeyPointFeatureDetector(const std::string &obj_id, int minHess)
+KeyPointFeatureDetector::KeyPointFeatureDetector(const std::string &obj_id)
 : Detector(obj_id)
 {
-	features = cv::xfeatures2d::SIFT::create(minHess, 3);
+	int nfeatures = 400;
+	int nOctaveLayers = 3;
+	double contrastThreshold = 0.02;
+	double edgeThreshold = 20;
+	double sigma = 0.8;
+
+	features = cv::xfeatures2d::SIFT::create(
+			nfeatures,
+			nOctaveLayers,
+			contrastThreshold,
+			edgeThreshold,
+			sigma
+			);
 };
 
 cv::Mat KeyPointFeatureDetector::prepare_image(const cv::Mat & src)
@@ -118,7 +130,7 @@ std::vector<std::vector<cv::Point2d>> KeyPointFeatureDetector::match(
 		if (!geom::checkQuadrangle(scn_corners))
 			break;
 
-		geom::Quadrangle quad(scn_corners);
+		log_state << object_id << ": " << (1. * obj_points.size() / keypoints.size()) << std::endl;
 
 		for (int i = 0; i < good_matches.size(); i++)
 		{
