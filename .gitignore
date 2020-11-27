@@ -11,17 +11,20 @@
 *.write.1.tlog
 *.lastbuildstate
 *.dll
-*.ipch
-*.jpg
-*.png
-*.gif
-*.avi
-*.jpeg
+#*.ipch
+#*.jpg
+#*.png
+#*.gif
+#*.avi
+#*.jpeg
 *.db
 *.xml
 .vs
 Debug
 \.idea/
+results/*
+!results/2020-11-27-07:58:50/3270912795*
+!results/2020-11-27-07:58:50/3786440680*
 
 Detection/cmake-build-debug/
 
