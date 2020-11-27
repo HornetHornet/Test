@@ -12,14 +12,21 @@
 #include "geom-utils.hpp"
 
 
-DEFINE_string(objects, "", "");
-DEFINE_string(scenes, "", "");
-DEFINE_int32(jobs, 8, "number of cocurrent detection jobs");
-DEFINE_int32(obj_min_hess, 400, "");
-DEFINE_int32(scn_min_hess, 750, "");
-DEFINE_int32(obj_size, 256, "");
-DEFINE_int32(scn_size, 780, "");
+DEFINE_string(objects, "", "path to directory with reference images");
+DEFINE_string(scenes, "", "path to directory with scene images");
+DEFINE_int32(jobs, 8, "number of concurrent matching jobs");
 
+DEFINE_int32(obj_size, 256, "each reference image will be resized down, so that its"
+							"max dimension was not exceeding this value");
+
+DEFINE_int32(scn_size, 780, "each scene image will be resized "
+							"so that its max dimension was equal to this value");
+
+DEFINE_int32(obj_min_hess, 400, "Threshold for hessian keypoint detector used in SURF "
+								"for extracting features from the reference image");
+
+DEFINE_int32(scn_min_hess, 750, "Threshold for hessian keypoint detector used in SURF "
+								"for extracting features from the scene image");
 
 namespace bfs = boost::filesystem;
 
@@ -125,7 +132,9 @@ void printGFlagsHelp()
 int main(int argc, char *argv[])
 {
 	google::ParseCommandLineNonHelpFlags(&argc, &argv, true);
-	if (std::string(google::GetArgv()).find("--help") != std::string::npos)
+	if (std::string(google::GetArgv()).find("-help") != std::string::npos
+	or std::string(google::GetArgv()).find("--help") != std::string::npos
+	or std::string(google::GetArgv()).find("-h") != std::string::npos)
 	{
 		printGFlagsHelp();
 		return 1;
@@ -163,8 +172,7 @@ int main(int argc, char *argv[])
 				resizeDown(obj_img, FLAGS_obj_size);
 				cv::Mat kp_det_prepared_img =
 						KeyPointFeatureDetector::prepare_image(obj_img);
-				auto detector = std::make_shared<KeyPointFeatureDetector>(
-						object_id, FLAGS_obj_min_hess);
+				auto detector = std::make_shared<KeyPointFeatureDetector>(object_id);
 
 				if (detector->process(kp_det_prepared_img))
 					detectors.push_back(detector);
@@ -204,10 +212,10 @@ int main(int argc, char *argv[])
 
 			// prepare and process scene
 
-			preciseResize(img_scene, FLAGS_scn_size);
+//			resizeDown(img_scene, FLAGS_scn_size);
 			cv::Mat kp_det_prepared_img = KeyPointFeatureDetector::prepare_image(img_scene);
 
-			KeyPointFeatureDetector sd_scene("scn_" + scene_filename, FLAGS_scn_min_hess);
+			KeyPointFeatureDetector sd_scene("scn_" + scene_filename);
 			sd_scene.process(kp_det_prepared_img.clone());
 
 			// match with objects
