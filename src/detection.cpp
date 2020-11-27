@@ -132,13 +132,12 @@ std::vector<std::vector<cv::Point2d>> KeyPointFeatureDetector::match(
 
 		log_state << object_id << ": " << (1. * obj_points.size() / keypoints.size()) << std::endl;
 
+		geom::Quadrangle quad(scn_corners);
 		for (int i = 0; i < good_matches.size(); i++)
 		{
 			if (quad.surrounds(sd_scene.keypoints[good_matches[i].trainIdx].pt))
 				used_matches.insert(i);
 		}
-
-		log_state << "found: " << object_id << std::endl;
 
 		ans_boxes.push_back(scn_corners);
 	}

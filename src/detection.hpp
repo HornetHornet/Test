@@ -35,7 +35,7 @@ class KeyPointFeatureDetector : public Detector
 public:
 	static cv::Mat prepare_image(const cv::Mat & img);
 
-	KeyPointFeatureDetector(const std::string &obj_id, int MinHess);
+	KeyPointFeatureDetector(const std::string &obj_id);
 	virtual ~KeyPointFeatureDetector() = default;
 	bool process(cv::Mat image);
 
