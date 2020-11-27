@@ -1,8 +1,6 @@
 # Logo Recognition Test Assignment
 
-![](results/2020-11-27-07:58:50/2962045.jpg?raw=true "Title")
-![](results/2020-11-27-07:58:50/3786440680.jpg?raw=true "Title")
-
+![](results/2020-11-27-07:58:50/3270912795.jpg?raw=true "Title")
 
 ##About
 
@@ -61,3 +59,5 @@ $ label-detection --help
      -scn_size (each scene image will be resized so that its max dimension was
        equal to this value) type: int32 default: 780
 ```
+
+![](results/2020-11-27-07:58:50/3786440680.jpg?raw=true "Title")
