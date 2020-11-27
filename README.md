@@ -1,55 +1,63 @@
-﻿## Тестовое задание по распознаванию логотипов
+﻿# Logo Recognition Test Assignment
 
-#### Как работает
+![](results/2020-11-27-07:58:50/2962045.jpg?raw=true "Title")
+![](results/2020-11-27-07:58:50/3786440680.jpg?raw=true "Title")
 
-С помощью текстового редактора вы можете открыть и отредактировать **run_detection.bat**, прописав в нем относительные или абсолютные **пути** к
 
-1. .exe файлу, 
-2. директории с изображениями (или к единственному изображению) на которых выполняется распознавание
-3. директории с изображениями объектов (или к единственному изображению), 
+##About
 
-подобно тому, как это уже сделано там, и запустить его. Аналогично приложение можно вызвать из консоли.
+This is a solution to a test assignment that landed my first coding job. The task went like this:
+given reference images of logotypes, design and implement the algorithm to locate them on 
+given scene images.
 
-Я свел GUI к нулю. В консоли будут появляться сообщения об открытых изображениях, прогрессе, времени и результатах обработки. Также будет создан **.log** файл, частично дублирующий вывод в консоль и **папка с изображениями**, на которых будут отмечены результаты. 
+Recently I decided to update it, without changing keypoint based core algorithm, 
+to somehow showcase at least some of my progress. Moving to CCNs would be a fun task for another time.
 
-Программа может находить несколько одинаковых объектов на одном изображении. В принципе, может находить несколько разных объектов на одном изображении, но на данном наборе с текущими параметрами этого не происходит. У меня было 47 обнаруженных объектов (без учета распознавания на образцах), без ложных срабатываний, после 12-и минут работы. 
+Original dataset was lost, but I've found a similar one 
+[here](http://image.ntua.gr/iva/datasets/flickr_logos/).
 
-####  Как собрать
+## Dependecies
 
-Чтобы собрать проект, откройте **.sln** файл в **VS 2013-15**
+```
+opencv-4 build with nonfree module
+boost
+gflags
+```
 
-Если у вас уже есть библиотеки [**Opencv 2.4.12**](http://opencv.org/downloads.html) и [**Boost 1.59**](https://sourceforge.net/projects/boost/files/boost-binaries/1.59.0/) , подключите их.
+Target platform is Linux, but with some tweaks it should be possible to build on others. 
 
-Укажите пути к библиотекам
-> 1. "C:\Libraries\boost_1_59_0; C:\Libraries\opencv 2.4\opencv\build\include"
-> 2. "C:\Libraries\boost_1_59_0\lib64-msvc-12.0; C:\Libraries\opencv 2.4\opencv\build\x64\vc12\lib"
+`src/install-opencv-4.sh` script should be of help in building required opencv configuration.
 
-соотвественно в
-> 1. Project > Property Pages > C\C++ > General > Aditional Dependencies
-> 2. Project > Property Pages > Linker > Aditional Library Directories
+## Usage
 
-В случае, если opencv был построен с созданием opencv_world....lib, укажите его вместо библиотек в 
-> Project > Property Pages > Linker > Input > Additional Dependencies 
+Example usage:
 
-и поместите в папку с .exe файлом соответсвующие **.dll**, иначе эта папка должна содержать :
+```
+$ ./label-detection -objects data/reference -scenes data -jobs 8
+```
 
-* opencv_highgui2412d.dll 
-* opencv_core2412d.dll 
-* opencv_imgproc2412d.dll 
-* opencv_features2d2412d.dll 
-* opencv_cadll3d2412d.dll 
-* opencv_nonfree2412d.dll 
-* opencv_flann2412d.dll 
-* opencv_ml2412d.dll 
-* opencv_objdetect2412d.dll 
-* opencv_ocl2412d.dll 
+Supported command line options:
+ 
+ ```$xslt
+$ label-detection --help
 
-Если используемые вами библиотеки были собраны не под **x64** и не с использованием **Visual Studio 2013 (v120)**, укажите это в настройках проекта:
-
-> 1. Build > Configuration Manager > Active Solution Platform
-> 2. Project > Property Pages > Configuration Properties > Platform Toolset 
-
-Однако, я не могу гарантировать работоспособность проекта с версиями библиотек, отличными от тех, что использовал сам ([Opencv 2.4.12](http://opencv.org/downloads.html) и [Boost 1.59 x64 v120](https://sourceforge.net/projects/boost/files/boost-binaries/1.59.0/)), а начиная с Opencv 3.0 работать точно не будет.
-
-Они **prebuild**, просто скачайте и распакуйте, при желании - укажите системные переменные. 
+ Usage:
+     -jobs (number of concurrent matching jobs) type: int32 default: 8
+ 
+     -obj_min_hess (Threshold for hessian keypoint detector used in SURF for
+       extracting features from the reference image) type: int32 default: 400
+ 
+     -obj_size (each reference image will be resized down, so that itsmax
+       dimension was not exceeding this value) type: int32 default: 256
+ 
+     -objects (path to directory with reference images) type: string default: ""
+ 
+     -scenes (path to directory with scene images) type: string default: ""
+ 
+     -scn_min_hess (Threshold for hessian keypoint detector used in SURF for
+       extracting features from the scene image) type: int32 default: 750
+ 
+     -scn_size (each scene image will be resized so that its max dimension was
+       equal to this value) type: int32 default: 780
+```
 
