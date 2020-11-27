@@ -4,16 +4,21 @@
 #include <map>
 #include <unordered_map>
 #include <future>
+#include <gflags/gflags.h>
+
 #include "detection.hpp"
 #include "file-utils.hpp"
 #include "img-utils.hpp"
 #include "geom-utils.hpp"
 
-#define OBJ_MIN_HESS 400
-#define SCN_MIN_HESS 750
 
-#define OBJ_SIZE 256
-#define SCN_SIZE 780
+DEFINE_string(objects, "", "");
+DEFINE_string(scenes, "", "");
+DEFINE_int32(jobs, 8, "number of cocurrent detection jobs");
+DEFINE_int32(obj_min_hess, 400, "");
+DEFINE_int32(scn_min_hess, 750, "");
+DEFINE_int32(obj_size, 256, "");
+DEFINE_int32(scn_size, 780, "");
 
 
 namespace bfs = boost::filesystem;
@@ -105,22 +110,34 @@ std::vector<T> concurrentlyExecuteScheduledTasks(
 	return results;
 }
 
-
-int main(int argc, char **argv)
+void printGFlagsHelp()
 {
+	std::cerr << "Usage:\n";
+	std::vector<google::CommandLineFlagInfo> out;
+	google::GetAllFlags(&out);
+	for (auto f : out)
+	{
+		if (f.filename.find("gflags") == std::string::npos)
+			std::cerr << google::DescribeOneFlag(f) << std::endl;
+	}
+}
+
+int main(int argc, char *argv[])
+{
+	google::ParseCommandLineNonHelpFlags(&argc, &argv, true);
+	if (std::string(google::GetArgv()).find("--help") != std::string::npos)
+	{
+		printGFlagsHelp();
+		return 1;
+	}
+
 	std::string session_id = get_session_id();
 	init_logger(session_id);
 
-	std::string arg_keys =
-			"{ o| objects |       | path to images with object}"
-			"{ s| data |       | path to images with data}"
-			"{ j| jobs |       | number of parallel object detection jobs to use}";
 
-	cv::CommandLineParser parser(argc, argv, arg_keys.c_str());
-
-	std::vector<bfs::path> obj_paths = list_files(parser.get<std::string>("o"), IMAGES);
-	std::vector<bfs::path> scn_paths = list_files(parser.get<std::string>("s"), IMAGES);
-	const int n_jobs = std::stoi(parser.get<std::string>("j"));
+	std::vector<bfs::path> obj_paths = list_files(FLAGS_objects, IMAGES);
+	std::vector<bfs::path> scn_paths = list_files(FLAGS_scenes, IMAGES);
+	const int n_jobs = FLAGS_jobs;
 
 	if (obj_paths.empty() || scn_paths.empty())
 	{
@@ -143,11 +160,11 @@ int main(int argc, char **argv)
 			cv::Mat obj_img;
 			if (openImage(obj_path, obj_img))
 			{
-				resizeDown(obj_img, OBJ_SIZE);
+				resizeDown(obj_img, FLAGS_obj_size);
 				cv::Mat kp_det_prepared_img =
 						KeyPointFeatureDetector::prepare_image(obj_img);
-				auto detector =
-						std::make_shared<KeyPointFeatureDetector>(object_id, OBJ_MIN_HESS);
+				auto detector = std::make_shared<KeyPointFeatureDetector>(
+						object_id, FLAGS_obj_min_hess);
 
 				if (detector->process(kp_det_prepared_img))
 					detectors.push_back(detector);
@@ -187,10 +204,10 @@ int main(int argc, char **argv)
 
 			// prepare and process scene
 
-			preciseResize(img_scene, SCN_SIZE);
+			preciseResize(img_scene, FLAGS_scn_size);
 			cv::Mat kp_det_prepared_img = KeyPointFeatureDetector::prepare_image(img_scene);
 
-			KeyPointFeatureDetector sd_scene("scn_" + scene_filename, SCN_MIN_HESS);
+			KeyPointFeatureDetector sd_scene("scn_" + scene_filename, FLAGS_scn_min_hess);
 			sd_scene.process(kp_det_prepared_img.clone());
 
 			// match with objects
@@ -264,5 +281,4 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-// todo use gflags?
 // todo update readme

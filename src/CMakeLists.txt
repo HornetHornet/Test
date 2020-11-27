@@ -26,6 +26,7 @@ add_executable(
 
 target_link_libraries(
 		label-detection
+		gflags
 		${OpenCV_LIBS}
 		${Boost_LIBRARIES}
 		pthread
