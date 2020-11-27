@@ -1,8 +1,13 @@
 #include <iomanip>
+#include <queue>
 #include <thread>
+#include <map>
+#include <unordered_map>
+#include <future>
 #include "detection.hpp"
 #include "file-utils.hpp"
 #include "img-utils.hpp"
+#include "geom-utils.hpp"
 
 #define OBJ_MIN_HESS 400
 #define SCN_MIN_HESS 750
@@ -16,13 +21,10 @@ namespace bfs = boost::filesystem;
 
 static std::string get_session_id()
 {
-
 	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
 	time_t tt = std::chrono::system_clock::to_time_t(now);
-
 	std::stringstream ss;
 	ss << std::put_time(std::localtime(&tt), "%Y-%m-%d-%H:%M:%S");
-
 	return ss.str();
 }
 
@@ -35,34 +37,72 @@ inline double tick(double t)
 
 inline bool openImage(const bfs::path &imagePath, cv::Mat &image)
 {
-
 	image = cv::imread(imagePath.string(), cv::IMREAD_UNCHANGED);
 
-	if (image.data)
+	if (image.empty())
+		return false;
+
+	if (image.channels() == 4)
+		makeOpaque(image);
+
+	switch (image.type())
 	{
-		log_state << "opened: " << imagePath.filename().string() << std::endl;
-
-		if (image.channels() == 4)
-			imgutils::makeOpaque(image);
-
-		switch (image.type())
-		{
-			case (CV_8UC3) :
-				break;
-			case (CV_16UC3) :
-				image.convertTo(image, CV_8UC3, 1.0 / 256);
-				break;
-			default:
-				image.convertTo(image, CV_8UC3);
-				break;
-		}
-
-		return true;
+		case (CV_8UC3) :
+			break;
+		case (CV_16UC3) :
+			image.convertTo(image, CV_8UC3, 1.0 / 256);
+			break;
+		default:
+			image.convertTo(image, CV_8UC3);
+			break;
 	}
 
-	log_err << "ERROR: failed to open " << imagePath << std::endl;
+	return true;
+}
 
-	return false;
+
+template<typename T, typename R, typename... Args>
+R ResultOf(R (T::*)(Args...) const);
+
+
+template<typename T>
+std::vector<T> concurrentlyExecuteScheduledTasks(
+		std::queue<std::packaged_task<T()>> &tasks,
+		const int n_jobs)
+{
+	std::vector<std::future<T>> futures;
+	std::vector<T> results;
+
+	while (!tasks.empty() or !futures.empty())
+	{
+		while (!tasks.empty() and futures.size() < n_jobs)
+		{
+			auto task = std::move(tasks.front());
+			tasks.pop();
+			futures.push_back(task.get_future());
+			std::thread(std::move(task)).detach();
+		}
+
+		while (futures.size() == n_jobs or (tasks.empty() and !futures.empty()))
+		{
+			for (int i = 0; i < futures.size(); ++i)
+			{
+				switch (futures[i].wait_for(std::chrono::milliseconds(10)))
+				{
+					case std::future_status::deferred :
+						assert(false);
+					case std::future_status::timeout :
+						continue;
+					case std::future_status::ready :
+						results.push_back(futures[i].get());
+						std::swap(futures[i], futures.back());
+						futures.pop_back();
+						break;
+				}
+			}
+		}
+	}
+	return results;
 }
 
 
@@ -73,210 +113,156 @@ int main(int argc, char **argv)
 
 	std::string arg_keys =
 			"{ o| objects |       | path to images with object}"
-			"{ s| data |       | path to images with data}";
+			"{ s| data |       | path to images with data}"
+			"{ j| jobs |       | number of parallel object detection jobs to use}";
 
 	cv::CommandLineParser parser(argc, argv, arg_keys.c_str());
 
 	std::vector<bfs::path> obj_paths = list_files(parser.get<std::string>("o"), IMAGES);
 	std::vector<bfs::path> scn_paths = list_files(parser.get<std::string>("s"), IMAGES);
+	const int n_jobs = std::stoi(parser.get<std::string>("j"));
 
-	if (obj_paths.size() == 0 || scn_paths.size() == 0)
+	if (obj_paths.empty() || scn_paths.empty())
 	{
-		log_err << obj_paths.size() << " objects and " << scn_paths.size() << " data"
-		        << std::endl;
+		log_err << "objects: " << obj_paths.size() << std::endl;
+		log_err << "scenes:  " << scn_paths.size() << std::endl;
 		return 1;
 	}
 
-	std::vector<SiftDetector> detectors;
-	double t = (double) cv::getTickCount();
-
-//	{
-//		std::vector<std::thread> threads;
-//		std::vector<cv::Mat> images;
-//
-//		for(const auto & obj_path : obj_paths) {
-//			cv::Mat obj_img;
-//			if (openImage(obj_path, obj_img)) {
-//				detectors.push_back(SiftDetector(obj_path.filename().string(), OBJ_MIN_HESS));
-//				trnsf::resizeDown(obj_img, OBJ_SIZE);
-//				images.push_back(obj_img);
-//			}
-//		}
-//
-//		auto it = detectors.begin();
-//		for (size_t i = 0; i < images.size(); i++) {
-//			threads.push_back(std::thread(&SiftDetector::process, &(*it), images[i]));
-//			it++;
-//		}
-//
-//		log_state << std::endl << "processed " << 0 << "/ " << threads.size() << " objects";
-//
-//		for (size_t i = 0; i < threads.size(); i++) {
-//			threads[i].join();
-//			log_state << '\r' << "processed " << i + 1 << "/ " << threads.size() << " objects";
-//		}
-//
-//		log_state << std::endl;
-//	}
+	std::vector<std::shared_ptr<KeyPointFeatureDetector>> detectors;
+	auto t = (double) cv::getTickCount();
 
 	{
 		for (const auto &obj_path : obj_paths)
 		{
+			std::string object_id =  obj_path.stem().string();
+			boost::to_upper<std::string>(object_id);
+
+			log_state << "opening: " << obj_path.string() << std::endl;
+
 			cv::Mat obj_img;
 			if (openImage(obj_path, obj_img))
 			{
-				detectors.push_back(
-						SiftDetector(obj_path.filename().string(), OBJ_MIN_HESS));
-				imgutils::resizeDown(obj_img, OBJ_SIZE);
-//				images.push_back(obj_img);
-//				detectors.push_back(SiftDetector());
-				detectors.back().process(obj_img);
+				resizeDown(obj_img, OBJ_SIZE);
+				cv::Mat kp_det_prepared_img =
+						KeyPointFeatureDetector::prepare_image(obj_img);
+				auto detector =
+						std::make_shared<KeyPointFeatureDetector>(object_id, OBJ_MIN_HESS);
+
+				if (detector->process(kp_det_prepared_img))
+					detectors.push_back(detector);
 			}
 		}
-
-//		auto it = detectors.begin();
-//		for (size_t i = 0; i < images.size(); i++) {
-//			threads.push_back(std::thread(&SiftDetector::process, &(*it), images[i]));
-//			it++;
-//		}
-//
-//		log_state << std::endl << "processed " << 0 << "/ " << threads.size() << " objects";
-//
-//		for (size_t i = 0; i < threads.size(); i++) {
-//			threads[i].join();
-//			log_state << '\r' << "processed " << i + 1 << "/ " << threads.size() << " objects";
-//		}
-
 	}
 
-	auto it = detectors.begin();
-	while (it != detectors.end())
-	{
-		if (it->isWorking())
-			it++;
-		else
-		{
-			log_err << "Failed to find at least " << MIN_POINTS << " points on "
-			        << it->getName() << ", won't search for it" << std::endl;
-			it = detectors.erase(it);
-		}
-	}
-
-	if (distance(detectors.begin(), detectors.end()) == 0)
+	if (detectors.empty())
 	{
 		log_state << "ERROR: no working detectors" << std::endl;
 		return 2;
 	}
 
-	int scn_proc = 0;
-
-	bfs::create_directories(bfs::path("results/" + session_id));
+	bfs::path results_parent_path = bfs::path("results") / session_id;
+	bfs::create_directories(results_parent_path);
+	std::map<std::string, std::map<std::string, double>> id_to_stats;
+	int scn_cnt = 0;
 
 	for (const auto &scn_path : scn_paths)
 	{
-
+		++scn_cnt;
+		auto it_start_t = std::chrono::system_clock::now();
 		log_state
-				<< "time passed: " << tick(t) << " seconds" << std::endl
-				<< "scene: " << ++scn_proc << " / " << scn_paths.size() << std::endl;
+				<< "scene: " << scn_cnt << " / " << scn_paths.size() << std::endl
+				<< "total time: " << tick(t) << " seconds" << std::endl
+				<< "avg time: " << tick(t) / scn_cnt << " seconds" << std::endl
+				<< std::endl;
+
+		std::string scene_filename = scn_path.filename().string();
+		bfs::path result_dst_path = results_parent_path / scene_filename;
 
 		try
 		{
 			cv::Mat img_scene;
-
 			if (!openImage(scn_path, img_scene))
 				continue;
 
-			imgutils::preciseResize(img_scene, SCN_SIZE);
+			// prepare and process scene
 
-			SiftDetector sd_scene("scn_" + scn_path.filename().string(), SCN_MIN_HESS);
-			sd_scene.process(img_scene.clone());
+			preciseResize(img_scene, SCN_SIZE);
+			cv::Mat kp_det_prepared_img = KeyPointFeatureDetector::prepare_image(img_scene);
 
-			if (!sd_scene.isWorking())
-				continue;
+			KeyPointFeatureDetector sd_scene("scn_" + scene_filename, SCN_MIN_HESS);
+			sd_scene.process(kp_det_prepared_img.clone());
 
-			for (auto &det : detectors)
+			// match with objects
+
+			auto detection_task = [sd_scene](const std::shared_ptr<Detector> obj_det)
 			{
-//			log_state << std::endl;
-				det.match(sd_scene, img_scene);
+				std::vector<std::vector<cv::Point2d>> matches;
+				auto kp_det_obj =
+						std::dynamic_pointer_cast<KeyPointFeatureDetector>(obj_det);
+				if (kp_det_obj)
+				{
+					matches = kp_det_obj->match(sd_scene);
+				}
+				return std::make_pair(obj_det->object_id, matches);
+			};
+
+			using TaskRet = decltype(ResultOf(&decltype(detection_task)::operator()));
+			std::queue<std::packaged_task<TaskRet()>> tasks;
+			for (auto &det : detectors)
+				tasks.push(std::packaged_task<TaskRet()>(std::bind(detection_task, det)));
+			std::vector<TaskRet> results = concurrentlyExecuteScheduledTasks(tasks, n_jobs);
+
+			// show results
+
+			for (const auto &item : results)
+			{
+				std::string obj_id = item.first;
+				std::vector<std::vector<cv::Point2d>> boxes = item.second;
+
+				if (boxes.empty())
+					continue;
+
+				cv::Scalar label_clr = makeRandColor();
+
+				for (auto &box : boxes)
+				{
+					fitPoly(box, img_scene.size());
+					drawPoly(img_scene, box, label_clr);
+					cv::Point text_pos = geom::centroid(box) - cv::Point2d(30, 0);
+					pretty_put_text_line( img_scene, obj_id, text_pos, label_clr);
+				}
+
+				cv::imshow("scene", img_scene);
+				cv::waitKey(1);
+
+				id_to_stats[obj_id]["encounters"] += boxes.size();
 			}
 
-
-//		std::vector<std::thread> threads;
-//
-//		for (int i = 0; i < detectors.size(); ++i){
-//			if (it->isWorking())
-//				threads.push_back(std::thread(&SiftDetector::match, detectors[i], sd_scene, img_scene));
-//		}
-////		for (auto it = detectors.begin(); it != detectors.end(); it++) {
-////			if (it->isWorking())
-////				threads.push_back(std::thread(&SiftDetector::match, &(*it), sd_scene, img_scene));
-////		}
-//
-//		for (size_t i = 0; i < threads.size(); i++)
-//			threads[i].join();
-
-			cv::imwrite("results_" + session_id + "/res_for_" + scn_path.stem().string() +
-			            ".jpg", img_scene);
-
+			cv::imwrite(result_dst_path.string(), img_scene);
 		}
 		catch (const std::exception &e)
 		{
 			log_err << e.what() << std::endl;
 		}
-
 	}
 
+	for (const auto &item : id_to_stats)
+	{
+		log_state << item.first << std::endl;
+		for (const auto &item2 : item.second)
+			log_state << "\t" << item2.first << ": " << item2.second << std::endl;
+	}
 
-//	for (const auto & scn_path : scn_paths) {
-//
-//		logg::tout << std::endl << std::endl << "time passed: " << tick(t) << " seconds"
-//			<< std::endl << "scene: " << ++scn_proc << "/ " << scn_paths.size() << " " << std::endl;
-//
-//		cv::Mat img_scene;
-//
-//		if (!openImage(scn_path, img_scene))
-//			continue;
-//
-//		trnsf::preciseResize(img_scene, SCN_SIZE);
-//
-//		SiftDetector sd_scene("scn_" + scn_path.filename().string(), SCN_MIN_HESS);
-//		sd_scene.process(img_scene);
-//
-//		if (!sd_scene.isWorking())
-//			continue;
-//
-//
-//		log_state << std::endl;
-//
-//		std::vector<std::thread> threads;
-//
-//		for (int i = 0; i < detectors.size(); ++i){
-//			if (it->isWorking())
-//				threads.push_back(std::thread(&SiftDetector::match, detectors[i], sd_scene, img_scene));
-//		}
-////		for (auto it = detectors.begin(); it != detectors.end(); it++) {
-////			if (it->isWorking())
-////				threads.push_back(std::thread(&SiftDetector::match, &(*it), sd_scene, img_scene));
-////		}
-//
-//		for (size_t i = 0; i < threads.size(); i++)
-//			threads[i].join();
-//
-//		imwrite("results_" + session_id + "/res_for_" + scn_path.stem().string() + ".jpg", img_scene);
-//	}
-
-	log_state << std::endl << "DONE" << std::endl
-	          << "total time: " << tick(t) << " seconds" << std::endl;
-//		<< "detections: " << SiftDetector::detections << std::endl;
+	log_state
+			<< std::endl
+			<< "DONE" << std::endl
+			<< "total time: " << tick(t) << " seconds" << std::endl;
 
 	cv::waitKey();
 
 	return 0;
 }
 
-// todo calc stats: avg, median time, how many objects of each type detected
-// todo better exception handling
 // todo use gflags?
-// todo better debug demonstration? move it to main?
-// todo better comments
 // todo update readme

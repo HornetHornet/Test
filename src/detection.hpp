@@ -9,7 +9,7 @@
 #include "logger.hpp"
 
 
-#define MIN_POINTS 18    // with less than that points object would not be found anyway
+#define MIN_POINTS 13 // with less than that points object would not be found anyway
 #define MIN_MATCHES 9   // less then this matcing points will cause false alarms
 
 
@@ -19,16 +19,13 @@
 class Detector
 {
 protected:
-	std::string object_id;
-	bool working = false;
-	Detector();
-
+	Detector(const std::string & obj_id);
+	virtual ~Detector() = default;
 public:
-	std::string getName() const;
-	bool isWorking() const;
+	const std::string object_id;
 };
 
-class SiftDetector : public Detector
+class KeyPointFeatureDetector : public Detector
 {
 	cv::Ptr<cv::Feature2D> features;
 	std::vector<cv::Point2d> obj_corners;
@@ -36,11 +33,16 @@ class SiftDetector : public Detector
 	cv::Mat descriptors;
 
 public:
-	SiftDetector(const std::string &object_id, int MinHess);
-	void process(cv::Mat image);
-	void match(const SiftDetector &sd_scene, const cv::Mat &img_scene) const;
+	static cv::Mat prepare_image(const cv::Mat & img);
 
-//	static int SiftDetector::detections;
+	KeyPointFeatureDetector(const std::string &obj_id, int MinHess);
+	virtual ~KeyPointFeatureDetector() = default;
+	bool process(cv::Mat image);
+
+	std::vector<std::vector<cv::Point2d>> match(
+			const KeyPointFeatureDetector &sd_scene) const;
+
+//	static int KeyPointFeatureDetector::detections;
 };
 
 #endif

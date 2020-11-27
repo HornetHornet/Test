@@ -97,7 +97,7 @@ namespace geom
 	}
 
 	// returns centroid of a polygon
-	cv::Point2d centroid(std::vector<cv::Point2d> polygon)
+	static cv::Point2d centroid(std::vector<cv::Point2d> polygon)
 	{
 		cv::Point2d c(0, 0);
 		double a = 0;

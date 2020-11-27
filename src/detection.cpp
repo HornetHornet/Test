@@ -6,45 +6,34 @@
 #include "geom-utils.hpp"
 
 
-Detector::Detector()
-		: working(false) {};
+Detector::Detector(const std::string & obj_id) : object_id(obj_id)
+{};
 
-bool Detector::isWorking() const
+
+//int KeyPointFeatureDetector::detections = 0;
+
+KeyPointFeatureDetector::KeyPointFeatureDetector(const std::string &obj_id, int minHess)
+: Detector(obj_id)
 {
-	return working;
-};
-
-std::string Detector::getName() const
-{
-	return object_id;
-};
-
-//int SiftDetector::detections = 0;
-
-SiftDetector::SiftDetector(const std::string &object_id_, int minHess)
-{
-	object_id = object_id_;
 	features = cv::xfeatures2d::SIFT::create(minHess, 3);
 };
 
-void pretty_put_line(const cv::Mat &image, const std::string &line, const cv::Point &pos)
+cv::Mat KeyPointFeatureDetector::prepare_image(const cv::Mat & src)
 {
-	auto font_id = cv::FONT_HERSHEY_PLAIN;
-	double font_scale = 1;
+	expect(!src.empty());
+	cv::Mat dst;
+	cv::cvtColor(src, dst, cv::COLOR_BGR2GRAY);
 
-	int thickness = 3;
-	cv::putText(image, line, pos, font_id, font_scale, {0, 0, 0, 0}, thickness);
-
-	thickness = 1;
-	cv::putText(image, line, pos, font_id, font_scale, {255, 255, 125}, thickness);
+	// SiftFeatureDetector have an option of contrast threshold but this worked out better
+	dst.convertTo(dst, -1, 1.5, 0);
+	return dst;
 }
 
-// check, convert to grayscale, calculate keypoints and descriptors
-void SiftDetector::process(cv::Mat image)
-{
 
-	if (!image.data)
-		return;
+// check, convert to grayscale, calculate key points and descriptors
+bool KeyPointFeatureDetector::process(cv::Mat image)
+{
+	expect(!image.empty());
 
 	obj_corners = {
 			cv::Point(0, 0),
@@ -53,37 +42,24 @@ void SiftDetector::process(cv::Mat image)
 			cv::Point(0, image.rows),
 	};
 
-	expect(!image.empty());
-//	log_state << image.type() << std::endl;
-	cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
-
-	// SiftFeatureDetector have an option of contrast threshold but this worked out better
-	image.convertTo(image, -1, 1.5, 0);
-
-//	SiftFeatureDetector detector(minHessian, 3);
 	features->detect(image, keypoints);
 
-//	detector.detect(image, keypoints);
+	if (keypoints.size() < MIN_POINTS){
+		log_err
+		<< "Failed to find at least " << MIN_POINTS << " points on " << object_id << ", " <<
+		" only " << keypoints.size() << " "
+		<< "Won't search for it" << std::endl;
+		return false;
+	}
 
-	if (keypoints.size() < MIN_POINTS)
-		return;
-
-//	Mat descriptors_1, descriptors_2;
 	features->compute(image, keypoints, descriptors);
-
-//	SiftDescriptorExtractor extractor;
-//	extractor.compute(image, keypoints, descriptors);
-
-	working = true;
+	return true;
 };
 
-// find matches in two precalculated sets of keypoints and descriptors
-void SiftDetector::match(const SiftDetector &sd_scene, const cv::Mat &img_scene) const
+// find matches in two precalculated sets of key points and descriptors
+std::vector<std::vector<cv::Point2d>> KeyPointFeatureDetector::match(
+		const KeyPointFeatureDetector &sd_scene) const
 {
-
-	if (!working || !sd_scene.isWorking())
-		return;
-
 	std::vector<cv::DMatch> matches;
 	cv::BFMatcher matcher;
 	matcher.match(descriptors, sd_scene.descriptors, matches);
@@ -104,9 +80,11 @@ void SiftDetector::match(const SiftDetector &sd_scene, const cv::Mat &img_scene)
 	}
 
 	if (good_matches.size() < MIN_MATCHES)
-		return;
+		return {};
 
 	std::unordered_set<int> used_matches;
+
+	std::vector<std::vector<cv::Point2d>> ans_boxes;
 
 	// search for the same object while there are left any unused good_matches 
 	while ((good_matches.size() - used_matches.size()) > MIN_MATCHES)
@@ -115,7 +93,7 @@ void SiftDetector::match(const SiftDetector &sd_scene, const cv::Mat &img_scene)
 		std::vector<cv::Point2d> obj_points;
 		std::vector<cv::Point2d> scn_points;
 
-		// get the keypoints from the good matches
+		// get the key points from the good matches
 		for (int i = 0; i < good_matches.size(); i++)
 		{
 			if (used_matches.find(i) == used_matches.end())
@@ -126,21 +104,19 @@ void SiftDetector::match(const SiftDetector &sd_scene, const cv::Mat &img_scene)
 		}
 
 		cv::Mat homography = cv::findHomography(obj_points, scn_points, cv::RANSAC);
-
-		std::vector<cv::Point2d> scn_corners(4);
-//		log_state << obj_corners.size() << std::endl;
 //		log_state << homography.size() << std::endl;
-
 		if (homography.empty())
 		{
 			break;
 		}
 
+		std::vector<cv::Point2d> scn_corners(4);
+//		log_state << obj_corners.size() << std::endl;
 		cv::perspectiveTransform(obj_corners, scn_corners, homography);
 
 		// check whether result looks realistic
 		if (!geom::checkQuadrangle(scn_corners))
-			return;
+			break;
 
 		geom::Quadrangle quad(scn_corners);
 
@@ -150,34 +126,10 @@ void SiftDetector::match(const SiftDetector &sd_scene, const cv::Mat &img_scene)
 				used_matches.insert(i);
 		}
 
-//		SiftDetector::detections++;
-
-		for (auto &p : scn_corners)
-		{
-			p.x = std::max<double>(p.x, 0);
-			p.y = std::max<double>(p.y, 0);
-			p.x = std::min<double>(p.x, img_scene.size().width);
-			p.y = std::min<double>(p.y, img_scene.size().height);
-		}
-
 		log_state << "found: " << object_id << std::endl;
 
-		for (int i = 0; i < scn_corners.size(); i++)
-		{
-			auto p1 = scn_corners[i];
-			auto p2 = scn_corners[(i + 1) % scn_corners.size()];
-			line(img_scene, p1, p2, cv::Scalar(0, 255, 0), 3);
-		}
-
-		pretty_put_line(
-				img_scene,
-				boost::to_upper_copy<std::string>(object_id),
-				geom::centroid(scn_corners) - cv::Point2d(30, 0)
-		);
-
-		// remember points of the found object
-
-		cv::imshow("scene", img_scene);
-		cv::waitKey(10);
+		ans_boxes.push_back(scn_corners);
 	}
+
+	return ans_boxes;
 }
