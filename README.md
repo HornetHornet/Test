@@ -1,4 +1,4 @@
-﻿# Logo Recognition Test Assignment
+# Logo Recognition Test Assignment
 
 ![](results/2020-11-27-07:58:50/2962045.jpg?raw=true "Title")
 ![](results/2020-11-27-07:58:50/3786440680.jpg?raw=true "Title")
@@ -8,13 +8,14 @@
 
 This is a solution to a test assignment that landed my first coding job. The task went like this:
 given reference images of logotypes, design and implement the algorithm to locate them on 
-given scene images.
+given scene images. Considering there were no ground truth, I went with keypoint-based detection. 
 
-Recently I decided to update it, without changing keypoint based core algorithm, 
-to somehow showcase at least some of my progress. Moving to CCNs would be a fun task for another time.
+Recently I decided to update the code, without changing core algorithm, 
+to showcase at least some of my progress. 
 
-Original dataset was lost, but I've found a similar one 
-[here](http://image.ntua.gr/iva/datasets/flickr_logos/).
+Original dataset was lost, but I've found a similar one [here](http://image.ntua.gr/iva/datasets/flickr_logos/).
+
+Moving to CCNs would be a fun task for another time. 
 
 ## Dependecies
 
@@ -60,4 +61,3 @@ $ label-detection --help
      -scn_size (each scene image will be resized so that its max dimension was
        equal to this value) type: int32 default: 780
 ```
-
