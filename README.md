@@ -1,6 +1,6 @@
 # Logo Recognition Test Assignment
 
-<img src="results/2020-11-27-07:58:50/3270912795.jpg" height="500"> <img src="results/2020-11-27-07:58:50/3786440680.jpg" height="500">
+<img src="results/2020-11-27-07:58:50/3270912795.jpg" height="500">
 
 ## About
 
@@ -59,3 +59,4 @@ $ label-detection --help
      -scn_size (each scene image will be resized so that its max dimension was
        equal to this value) type: int32 default: 780
 ```
+ <img src="results/2020-11-27-07:58:50/3786440680.jpg" height="500">
