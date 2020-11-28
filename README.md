@@ -1,8 +1,8 @@
 # Logo Recognition Test Assignment
 
-![](results/2020-11-27-07:58:50/3270912795.jpg?raw=true "Title")
+<img src="results/2020-11-27-07:58:50/3270912795.jpg" height="500"> <img src="results/2020-11-27-07:58:50/3786440680.jpg" height="500">
 
-##About
+## About
 
 This is a solution to a test assignment that landed my first coding job. The task went like this:
 given reference images of logotypes, design and implement the algorithm to locate them on 
@@ -59,5 +59,3 @@ $ label-detection --help
      -scn_size (each scene image will be resized so that its max dimension was
        equal to this value) type: int32 default: 780
 ```
-
-![](results/2020-11-27-07:58:50/3786440680.jpg?raw=true "Title")
