@@ -1,4 +1,3 @@
-# Logo Recognition Test Assignment
 
 <img src="results/2020-11-27-07:58:50/3270912795.jpg" height="500">
 
